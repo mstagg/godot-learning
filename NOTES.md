@@ -27,3 +27,5 @@ Art lessons slot in where a clone needs them: Breakout = palette + first sprites
 ## Session log hooks
 - Start each new session with 2-3 recall questions from the previous lesson before teaching anything new (spacing).
 - Lesson 1 (paddle) written 2026-10-20. Project goes in ~/learning/godot/projects/breakout. When the learner says "project created", write CLAUDE.md (Godot 4.7.2, typed GDScript, style guide, one step at a time, stop after each step, smoke test via `godot --path . --headless --quit-after 60`), create specs/, and init git.
+- Lesson 1 complete (2026-10-20). Recall check at start of lesson 2: body type choice needed a correction (CharacterBody2D = code moves it, not "responds to physics"); delta and input-action answers were right.
+- Lesson 2 (ball, walls, signals; specs 0004-0006) written 2026-10-20. Next planned: Lesson 3, bricks (instancing, groups, signals for score).

@@ -66,8 +66,22 @@
   <dd>A <code>CharacterBody2D</code> property: the speed and direction in pixels per second. You set it, then call <code>move_and_slide()</code>.</dd>
   <dt><code>move_and_slide()</code></dt>
   <dd>Moves the body by <code>velocity</code>, slides along whatever it hits, and <strong>applies the physics delta itself</strong>. Don't multiply velocity by <code>delta</code> before calling it. <span class="see"><a href="https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html">Docs</a></span></dd>
+  <dt><code>move_and_collide(motion)</code></dt>
+  <dd>Moves the body by a <em>distance</em> (so pass <code>velocity * delta</code>), stops at the first hit, and returns a <code>KinematicCollision2D</code> or <code>null</code>. Use it when you want to bounce, not slide. <span class="see"><a href="https://docs.godotengine.org/en/stable/tutorials/physics/using_character_body_2d.html">Docs</a></span></dd>
+  <dt><code>KinematicCollision2D</code></dt>
+  <dd>What <code>move_and_collide</code> returns on a hit. <code>get_normal()</code> gives the direction the surface faces; pass it to <code>velocity.bounce()</code>.</dd>
+  <dt>Collision layer / mask</dt>
+  <dd>Layer: which channels an object is on. Mask: which channels it scans for. A collision happens when one object's mask includes the other's layer. Defaults are layer 1, mask 1. <span class="see"><a href="https://docs.godotengine.org/en/stable/tutorials/physics/physics_introduction.html#collision-layers-and-masks">Docs</a></span></dd>
   <dt><code>motion_mode</code></dt>
   <dd><em>Grounded</em> for side-view games with floors and ceilings. <em>Floating</em> when there's no floor (top-down games, a Breakout paddle).</dd>
+</dl>
+
+<h2>Signals</h2>
+<dl class="glossary">
+  <dt>Signal</dt>
+  <dd>An event a node announces, such as <code>body_entered</code>. Other nodes connect a function to it with <code>signal.connect(func)</code>, and the emitter doesn't know who listens. <span class="see"><a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/signals.html">Docs</a></span></dd>
+  <dt>Call down, signal up</dt>
+  <dd>A parent calls methods on its children; a child emits signals and lets the parent react. A child that calls <code>get_parent()</code> is tied to that one parent.</dd>
 </dl>
 
 <h2>The frame loop</h2>

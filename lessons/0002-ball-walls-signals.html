@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ball, Walls, Signals</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+<p class="kicker">Lesson 2 · Breakout clone · about 40 minutes</p>
+<h1>A ball that bounces</h1>
+<p class="subtitle">Collisions, layers and your first signal, built from three small specs.</p>
+
+<div class="win">
+  <span class="label">Your win</span>
+  <p>A ball launches, bounces off the walls and your paddle at constant speed, and when it falls off the bottom the game notices and serves a new one. You write three specs, review every step, and can explain what a signal is and who listens to it.</p>
+</div>
+
+<p>Lesson 1 gave you a body that your code moves. Today's ball is the same kind of body, but this time the interesting part is what happens when it hits something. The second half of the lesson covers signals, the way one node tells the rest of the game that something happened. Signals are the main way scenes talk to each other in Godot, and nearly every later clone leans on them.</p>
+
+<h2>Three ideas, in ten minutes</h2>
+
+<h3>1. A Breakout ball is a CharacterBody2D, not a RigidBody2D</h3>
+<p>Last lesson's question still picks the body: <em>who controls the movement?</em> A real physics ball would speed up, slow down and spin. Breakout wants the opposite: constant speed and predictable angles. So your code stays in charge and the ball is a <code>CharacterBody2D</code> again.</p>
+<p>The difference from the paddle is the call. <code>move_and_slide()</code> slides along what it hits, which is right for walking. A ball must <em>bounce</em>, so it uses <code>move_and_collide()</code>. It moves by a motion vector, stops at the first thing it hits, and returns a collision object (or <code>null</code> if nothing was hit).<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/physics/using_character_body_2d.html">Docs: Using CharacterBody2D</a>. Shows <code>move_and_collide</code> returning a <code>KinematicCollision2D</code> and bouncing with <code>velocity.bounce(collision.get_normal())</code>.</span></p>
+<pre><code>func _physics_process(delta: float) -&gt; void:
+	var collision := move_and_collide(velocity * delta)
+	if collision:
+		velocity = velocity.bounce(collision.get_normal())</code></pre>
+<p>Look at the <code>delta</code>. <code>move_and_collide()</code> takes a <em>distance</em> for this tick, not a velocity, so here you <em>do</em> multiply by delta. <code>move_and_slide()</code> doesn't, <code>move_and_collide()</code> does. Agents mix these up, so it's the first thing to check in the ball script.</p>
+<p>The normal is the direction the surface faces. <code>bounce()</code> reflects the velocity around it, like a billiard ball off a cushion.</p>
+
+<h3>2. Layers say what you are, masks say what you notice</h3>
+<p>Every collision object has a <strong>layer</strong> (which channels it lives on) and a <strong>mask</strong> (which channels it scans for).<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/physics/physics_introduction.html#collision-layers-and-masks">Docs: Collision layers and masks</a>. "The collision layer describes where a node appears. The collision mask describes what a node scans for."</span> A collision happens when one object's mask includes the other's layer. Everything starts on layer 1 with mask 1, so by default everything hits everything. You've lived with that so far.</p>
+<p>You need layers today for one reason: the bottom-edge zone should react to the <em>ball</em>, not to the paddle or anything else that wanders in. Give the ball its own layer, and let that zone's mask watch only that layer. Name the layers in <em>Project Settings → Layer Names → 2D Physics</em>, so the Inspector shows names, not numbers.</p>
+
+<h3>3. Signals: "call down, signal up"</h3>
+<p>A <strong>signal</strong> is an event a node announces. Any other node can <em>connect</em> a function to it, and Godot calls that function when the signal is emitted.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/signals.html">Docs: Using signals</a>. Signals are Godot's observer pattern: the emitter doesn't know or care who is listening.</span> It is the observer pattern with the wiring built into the engine.</p>
+<p>Today's signal comes built into <code>Area2D</code>: <code>body_entered</code> fires when a physics body overlaps it. The bottom-edge zone is an <code>Area2D</code>. Code in the main scene connects to it:</p>
+<pre><code>@onready var _drain: Area2D = $Drain
+
+func _ready() -&gt; void:
+	_drain.body_entered.connect(_on_drain_body_entered)
+
+func _on_drain_body_entered(_body: Node2D) -&gt; void:
+	# ball fell off the bottom: serve a new one
+	...</code></pre>
+<p>The rule your <code>CLAUDE.md</code> already states, in one line: a parent <strong>calls down</strong> to its children with method calls, and a child <strong>signals up</strong> to its parent. The drain doesn't know the main scene exists. That's what lets you reuse a scene somewhere else unchanged. When you review agent code, a child calling <code>get_parent().something()</code> is the smell to catch.</p>
+
+<h2>Do it</h2>
+<ol class="steps" data-steps-key="0002">
+  <li>
+    <span class="step-title">Predict the node tree.</span>
+    On paper, write what <code>main.tscn</code> will contain once it has a paddle, a ball, three walls and a drain. Which are bodies, which is an area, which are scene instances? Don't look anything up. You'll compare in step 7.
+  </li>
+  <li>
+    <span class="step-title">Write spec 0004: walls.</span>
+    Create <code>specs/0004-walls.md</code>, at most 10 lines: three <code>StaticBody2D</code> walls (left, right, top), no wall at the bottom, no visible art. Say how thick they are and where "Not in this spec" draws the line. The paddle's existing clamp stays: removing it is a tempting extra. Then compare with the model below.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0004 · Walls
+
+Goal: the play area has solid walls on the left, right and top.
+
+Behaviour:
+- Three StaticBody2D walls just outside the viewport edges, 20 px thick.
+- Walls sized from the viewport at start, not hard-coded to 1152x648.
+- Nothing along the bottom edge.
+
+Done when:
+- Running the game shows no visible change, and the Remote tab shows three wall bodies at the edges.
+
+Not in this spec:
+- Ball, drain, collision layers, removing the paddle clamp, visible walls.</code></pre>
+      <p class="muted">"Done when" is a weak check here because nothing looks different yet. That's fine: a spec can set up the next one. The ball spec is where it becomes visible.</p>
+    </details>
+    Build it with: <em>"Implement specs/0004-walls.md one step at a time. Stop after each step."</em> Review each stop with the <a href="../reference/spec-loop.html">checklist</a>, then commit.
+  </li>
+  <li>
+    <span class="step-title">Write spec 0005: the ball.</span>
+    Create <code>specs/0005-ball.md</code>. Include the starting position, a speed in an <code>@export</code> variable, the launch angle, and what it bounces off. Write the bounce rules for the paddle too, since the paddle is already a body. Leave out the drain and any scoring. Then compare with the model.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0005 · Ball bounces
+
+Goal: a ball launches from the paddle and bounces around the play area.
+
+Behaviour:
+- Ball is a CharacterBody2D with a ColorRect, 16x16, as its own scene.
+- Starts above the paddle's centre and launches at 400 px/s, up and slightly right.
+- Uses move_and_collide; reflects off walls and the paddle with velocity.bounce().
+- Speed stays constant after every bounce (re-normalise the velocity).
+- Speed is an @export var.
+
+Done when:
+- Ball bounces off the left, right and top walls and the paddle, and never slows or speeds up.
+- Ball falls out of the bottom and keeps going (that's expected).
+
+Not in this spec:
+- Drain, respawn, bricks, paddle-angle control, spin, sounds.</code></pre>
+      <p class="muted">The bug to look for in review: speed that drifts after many bounces. Floating-point rounding is why the model spec asks for re-normalising.</p>
+    </details>
+    Build and review it the same way, then commit.
+  </li>
+  <li>
+    <span class="step-title">Write spec 0006: the drain.</span>
+    Create <code>specs/0006-drain.md</code>. The bottom of the screen gets an <code>Area2D</code> that emits a signal when the ball enters, and the main scene responds by putting the ball back above the paddle and relaunching it. The spec must say which node listens to which. Use the layers idea from the lesson so only the ball triggers it. Then compare with the model.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0006 · Drain and relaunch
+
+Goal: when the ball falls off the bottom, a new one is served.
+
+Behaviour:
+- Name 2D physics layers: walls, paddle, ball.
+- Drain is an Area2D below the bottom edge; its mask watches only the ball layer.
+- Main connects to the drain's body_entered signal and resets the ball above the paddle, relaunching it.
+- The drain does not reference main or the ball directly.
+
+Done when:
+- Letting the ball fall always serves a new ball. The paddle never triggers the drain.
+
+Not in this spec:
+- Lives, game over, score, delays or animations, scene reloading.</code></pre>
+      <p class="muted">Notice "the drain does not reference main". That sentence is the whole "signal up" rule, written as a testable line.</p>
+    </details>
+    Build and review it, then commit. In the review, find the line that connects the signal and read it aloud: who is the emitter, and who is the listener?
+  </li>
+  <li>
+    <span class="step-title">Run it and compare.</span>
+    Open the editor (<code>godot --path ~/learning/godot/projects/breakout/breakout -e</code>) and run the project. Check each "Done when" line. Then open <code>main.tscn</code> and compare the Scene dock with your prediction from step 1.
+  </li>
+  <li>
+    <span class="step-title">Break it on purpose.</span>
+    In <code>ball.gd</code>, change the line that moves the ball to <code>move_and_collide(velocity)</code>, without the <code>delta</code>. Run it and describe what you see, and why. Then undo the change. (One <code>git checkout</code> does it.)
+  </li>
+  <li>
+    <span class="step-title">Take the quiz below, from memory.</span>
+  </li>
+</ol>
+
+<h2>Check yourself</h2>
+<p class="muted">Answer without scrolling up. Effortful recall is what makes it stick, and a wrong answer now is useful.</p>
+<div class="quiz" id="quiz-0002"></div>
+<script type="application/json" data-quiz-for="quiz-0002">
+[
+  {
+    "q": "The ball must keep a constant speed and bounce predictably. Which root node?",
+    "options": ["RigidBody2D, so physics handles it", "A CharacterBody2D, moved by your code", "StaticBody2D with a bouncy material", "Area2D, since it only detects overlaps"],
+    "answer": 1,
+    "why": "Your code decides the motion, so the speed and angles stay exact. A RigidBody2D would let the physics engine change the speed and angle for you."
+  },
+  {
+    "q": "What does <code>move_and_collide(motion)</code> do when it hits something?",
+    "options": ["Slides along the surface", "Stops and returns the collision", "Bounces the body automatically", "Emits a signal and carries on"],
+    "answer": 1,
+    "why": "It stops at the first hit and returns a KinematicCollision2D, or null if nothing was hit. Bouncing is your job, using the collision's normal."
+  },
+  {
+    "q": "Which is correct for the ball's movement?",
+    "options": ["move_and_collide(velocity * delta)", "move_and_collide(velocity)", "move_and_slide(velocity * delta)", "move_and_slide() after velocity * delta"],
+    "answer": 0,
+    "why": "move_and_collide takes the distance for this tick, so delta is needed. move_and_slide uses the velocity property and applies delta itself."
+  },
+  {
+    "q": "A collision between A and B happens when…",
+    "options": ["A and B share the same layer", "Either one has an empty mask", "A's mask includes B's layer", "A and B have different layers"],
+    "answer": 2,
+    "why": "Layer is what an object is, mask is what it scans for. A's mask containing B's layer is what makes A notice B. The defaults, layer 1 and mask 1, make everything hit everything."
+  },
+  {
+    "q": "The drain's code reaches up with <code>get_parent().serve_ball()</code>. What's the problem?",
+    "options": ["get_parent only works in _process", "Signals can't carry any arguments", "The drain now depends on its parent", "serve_ball can't be called externally"],
+    "answer": 2,
+    "why": "A child should signal up and let the parent decide what to do. Calling the parent directly ties the drain to one specific scene, so it can't be reused."
+  },
+  {
+    "q": "After spec 0006, you notice the ball also bounces strangely off the left wall, but that isn't in the spec. You…",
+    "options": ["Ask the agent to fix it now", "Write a new spec for it", "Fix it by hand without a spec", "Leave it out of the commit"],
+    "answer": 1,
+    "why": "Each unrelated fix is a feature of its own: a small spec, a watched build, a separate commit. Mixing it into the drain commit makes the history harder to review."
+  }
+]
+</script>
+
+<h2>Go deeper</h2>
+<p><strong>Primary source:</strong> <a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/signals.html">Godot Docs, <em>Using signals</em></a> (10 minutes), then the <em>Collision layers and masks</em> section of <a href="https://docs.godotengine.org/en/stable/tutorials/physics/physics_introduction.html#collision-layers-and-masks">Physics introduction</a>. The signals page also shows connecting through the editor's Node dock, which you'll try in a later lesson.</p>
+<p>Keep these open: <a href="../reference/glossary.html">Glossary</a> · <a href="../reference/spec-loop.html">Spec loop</a></p>
+
+<div class="callout ask">
+  <span class="label">Ask your teacher</span>
+  <p>Anything unclear, from "why isn't the drain a body?" to "what happens if two signals fire in one frame?", just ask in the chat. Questions you ask are signal for the next lesson.</p>
+</div>
+
+<nav class="lesson-nav">
+  <a href="0001-paddle-nodes-and-input.html">← Lesson 1: the paddle</a>
+  <span class="muted">Next: Lesson 3, bricks, instancing and groups</span>
+</nav>
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/steps.js"></script>
+</body>
+</html>
