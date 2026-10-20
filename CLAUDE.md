@@ -12,7 +12,8 @@ Godot 4.7.2 Breakout clone. The owner is learning Godot by reviewing agent-writt
 ## Verify
 - `godot --path . --import` catches broken scenes and resources.
 - `godot --path . --headless --quit-after 60` smoke-tests the main scene. Godot silently ignores unknown flags, so check the output for errors rather than trusting the exit code.
-- Run both after every step. Report errors verbatim.
+- `godot --path . --headless --check-only --script res://<path>.gd` type-checks one script. Run it on every `.gd` file, one at a time. A clean script prints nothing, and the exit code is 0 even on errors, so read the output.
+- Run all three after every step. Report errors verbatim.
 
 ## GDScript
 - Typed everywhere: `var speed: float = 300.0`, `func _ready() -> void`.
