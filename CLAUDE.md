@@ -18,6 +18,7 @@ Godot 4.7.2 Breakout clone. The owner is learning Godot by reviewing agent-writt
 ## GDScript
 - Typed everywhere: `var speed: float = 300.0`, `func _ready() -> void`.
 - Follow the official style guide: tabs, `snake_case` functions and variables, `PascalCase` classes and nodes, `UPPER_SNAKE` constants.
+- Always prefix the current class's members with `self.`, even when it's verbose: properties (including inherited ones like `self.velocity` and `self.position`), `@onready` and `@export` vars, and method calls like `self.move_and_slide()`. The owner uses it to tell members from local variables. This overrides the style guide's default.
 - Input goes through Input Map actions, never raw keycodes (gamepad and Steam Deck support depend on it).
 - Do not multiply by `delta` before `move_and_slide()`; the engine applies it.
 - Tunable values are `@export` variables, not magic numbers.
