@@ -1,4 +1,4 @@
-# NNNN · Feature name
+# 0001 · Initial Paddle
 
 Goal: Moveable paddle for breakoutgame on screen. Moveable by user
 
