@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Godot Glossary</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+<p class="kicker">Reference · Godot 4.7</p>
+<h1>Glossary</h1>
+<p class="subtitle">The words every lesson uses, with the same meaning each time.</p>
+
+<p>Terms are added as lessons introduce them. If a lesson uses a word differently from this page, the page wins, so tell your teacher.</p>
+
+<h2>Engine structure</h2>
+<dl class="glossary">
+  <dt>Node</dt>
+  <dd>The basic building block. Each node type does one job (draw a sprite, detect collisions, play a sound). Nodes have a name, properties, and per-frame callbacks, and any node can have children. <span class="see"><a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/nodes_and_scenes.html">Docs</a></span></dd>
+
+  <dt>Scene</dt>
+  <dd>A tree of nodes saved to a <code>.tscn</code> file, with exactly one <em>root node</em>. Once saved, a scene acts like a new node type: you can drop it inside another scene as a single node. <span class="see"><a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/nodes_and_scenes.html">Docs</a></span></dd>
+
+  <dt>Root node</dt>
+  <dd>The top node of a scene. Its type usually defines what the scene <em>is</em>, e.g. a paddle scene's root is a <code>CharacterBody2D</code>.</dd>
+
+  <dt>Scene tree</dt>
+  <dd>The live tree of all nodes while the game runs. A game is a tree of scenes, and each scene is a tree of nodes.</dd>
+
+  <dt>Instance</dt>
+  <dd>One copy of a scene placed inside another. Ten bricks are ten instances of one Brick scene. <span class="see"><a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/instancing.html">Docs</a></span></dd>
+
+  <dt>Main scene</dt>
+  <dd>The scene Godot loads first when the game runs. Set in Project Settings.</dd>
+</dl>
+
+<h2>Input</h2>
+<dl class="glossary">
+  <dt>Input action</dt>
+  <dd>A named input, like <code>move_left</code>, that any number of keys, buttons or sticks can trigger. Game code checks actions, not raw keys, so remapping and gamepad support come for free. Name actions in <code>snake_case</code>. <span class="see"><a href="https://docs.godotengine.org/en/stable/tutorials/inputs/input_examples.html">Docs</a></span></dd>
+
+  <dt>Input Map</dt>
+  <dd>The Project Settings tab where actions are defined and bound to events. Stored in <code>project.godot</code>.</dd>
+
+  <dt><code>Input.get_axis(neg, pos)</code></dt>
+  <dd>Returns a float from −1 to 1: the strength of <code>pos</code> minus the strength of <code>neg</code>. One call gives left/right direction. <span class="see"><a href="https://docs.godotengine.org/en/stable/classes/class_input.html">Docs</a></span></dd>
+
+  <dt>Polling vs events</dt>
+  <dd><em>Polling</em> checks input state every frame (<code>Input.is_action_pressed</code>), for held actions like movement. <em>Events</em> arrive in <code>_input(event)</code> once per press, for one-off actions like jump.</dd>
+</dl>
+
+<h2>Physics &amp; movement</h2>
+<dl class="glossary">
+  <dt><code>CharacterBody2D</code></dt>
+  <dd>A body that detects collisions but has no built-in physics. Your code moves it. Use it for players, enemies, and paddles. <span class="see"><a href="https://docs.godotengine.org/en/stable/tutorials/physics/physics_introduction.html">Docs</a></span></dd>
+  <dt><code>StaticBody2D</code></dt>
+  <dd>A body that collides but never moves in response. Use it for walls and floors.</dd>
+  <dt><code>RigidBody2D</code></dt>
+  <dd>A body the physics engine simulates. You apply forces instead of setting its position.</dd>
+  <dt><code>Area2D</code></dt>
+  <dd>Detects overlaps and emits signals when bodies enter or exit. Doesn't block movement.</dd>
+  <dt><code>CollisionShape2D</code></dt>
+  <dd>The child node that gives a body or area its shape. A body with no shape collides with nothing.</dd>
+  <dt><code>velocity</code></dt>
+  <dd>A <code>CharacterBody2D</code> property: the speed and direction in pixels per second. You set it, then call <code>move_and_slide()</code>.</dd>
+  <dt><code>move_and_slide()</code></dt>
+  <dd>Moves the body by <code>velocity</code>, slides along whatever it hits, and <strong>applies the physics delta itself</strong>. Don't multiply velocity by <code>delta</code> before calling it. <span class="see"><a href="https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html">Docs</a></span></dd>
+  <dt><code>motion_mode</code></dt>
+  <dd><em>Grounded</em> for side-view games with floors and ceilings. <em>Floating</em> when there's no floor (top-down games, a Breakout paddle).</dd>
+</dl>
+
+<h2>The frame loop</h2>
+<dl class="glossary">
+  <dt><code>_physics_process(delta)</code></dt>
+  <dd>Runs at a fixed rate (60/s by default) before each physics step. Movement and anything touching bodies goes here.</dd>
+  <dt><code>_process(delta)</code></dt>
+  <dd>Runs once per rendered frame, which varies. Use it for visuals that don't touch physics.</dd>
+  <dt><code>delta</code></dt>
+  <dd>Seconds since the last call. Multiply per-second rates by it, unless the engine already does (see <code>move_and_slide</code>).</dd>
+</dl>
+
+<h2>Our workflow</h2>
+<dl class="glossary">
+  <dt>Spec</dt>
+  <dd>A file of at most about 10 lines in <code>specs/</code> that describes <em>one</em> feature: goal, behaviour, done-when, not-in-scope. <span class="see"><a href="spec-loop.html">Spec loop</a></span></dd>
+  <dt>Step</dt>
+  <dd>The smallest change the agent makes before stopping for your review: one file, or one concern.</dd>
+  <dt>Agent rules file</dt>
+  <dd><code>CLAUDE.md</code> at the project root. Standing instructions the agent reads every session: engine version, conventions, how to work.</dd>
+</dl>
+
+<nav class="lesson-nav">
+  <a href="spec-loop.html">Spec loop →</a>
+  <a href="../lessons/0001-paddle-nodes-and-input.html">Lesson 1</a>
+</nav>
+</main>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paddle, Nodes, Input</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+<p class="kicker">Lesson 1 · Breakout clone · about 30 minutes</p>
+<h1>A paddle that moves</h1>
+<p class="subtitle">Nodes, scenes and input actions, built from your first five-line spec.</p>
+
+<div class="win">
+  <span class="label">Your win</span>
+  <p>A Godot 4.7 window where a paddle slides left and right with the arrow keys and stops at the screen edges. You spec it, the agent builds it in steps you watch, and you can explain every node in it.</p>
+</div>
+
+<p>Breakout is a good first clone because it has very few moving parts: a paddle, a ball, walls and bricks. Each one introduces a single engine idea, and today's is the paddle. What carries forward to your tactics game is the input setup: anything driven by input actions, such as a map cursor or a menu, works on keyboard, gamepad and Steam Deck without extra code.</p>
+
+<h2>Three ideas, in five minutes</h2>
+
+<h3>1. Everything is a node, and nodes make scenes</h3>
+<p>Nodes are Godot's building blocks. Each node type does one job, and any node can have children.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/nodes_and_scenes.html">Docs: Nodes and scenes</a>. "Nodes are the fundamental building blocks of your game."</span> A tree of nodes saved to a file is a <strong>scene</strong>. A scene always has one root node, and once saved it behaves like a new node type you can drop into other scenes.</p>
+<p>In software terms, a scene is a component. The paddle will be its own scene, and the game scene will contain one instance of it.</p>
+
+<h3>2. Pick the body by who moves it</h3>
+<p>Godot has four 2D collision types. The question that picks one is <em>who controls the movement?</em><span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/physics/physics_introduction.html">Docs: Physics introduction</a>. A CharacterBody2D's movement "must be controlled by the user via code."</span></p>
+<div class="table-wrap">
+<table>
+  <tr><th>Node</th><th>Moved by</th><th>Breakout use</th></tr>
+  <tr class="pick"><td>CharacterBody2D</td><td>Your code</td><td>Paddle (today)</td></tr>
+  <tr><td>StaticBody2D</td><td>Nothing</td><td>Walls</td></tr>
+  <tr><td>RigidBody2D</td><td>Physics engine</td><td>Usually not the ball, as we'll see</td></tr>
+  <tr><td>Area2D</td><td>Doesn't block</td><td>The "ball fell off" zone</td></tr>
+</table>
+</div>
+<p>A body needs a <code>CollisionShape2D</code> child, or it collides with nothing. It needs something visible too: for now, a plain coloured rectangle.</p>
+
+<h3>3. Read actions, not keys, every physics tick</h3>
+<p>Define named <strong>input actions</strong> (<code>move_left</code>, <code>move_right</code>) in the Input Map, and bind keys or gamepad buttons to them.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/inputs/input_examples.html">Docs: Input examples</a>. Polling suits held actions like movement, and <code>_input()</code> events suit one-off actions.</span> Movement is a <em>held</em> action, so you poll it in <code>_physics_process</code>, which runs at a fixed 60 times per second.</p>
+<pre><code>func _physics_process(_delta: float) -&gt; void:
+	var direction := Input.get_axis("move_left", "move_right")  # −1 … 1
+	velocity.x = direction * speed
+	move_and_slide()</code></pre>
+<p><code>move_and_slide()</code> applies the physics delta for you, so the code doesn't multiply by <code>delta</code>. Multiplying again is the most common bug in agent-written movement code, so look for it.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html">CharacterBody2D reference</a>. move_and_slide uses <code>velocity</code> and the physics step automatically. <a href="https://docs.godotengine.org/en/stable/classes/class_input.html">Input.get_axis</a> returns positive strength minus negative strength.</span></p>
+
+<h2>Do it</h2>
+<ol class="steps" data-steps-key="0001">
+  <li>
+    <span class="step-title">Install Godot 4.7.2.</span>
+    <pre><code>brew install --cask godot
+godot --version   # expect 4.7.2.stable…</code></pre>
+  </li>
+  <li>
+    <span class="step-title">Create the project in the Project Manager.</span>
+    Run <code>open -a Godot</code>, choose <em>Create</em>, name it <code>breakout</code>, and set the folder to <code>~/learning/godot/projects/breakout</code>. Keep the default renderer for now. Renderers come up again in the Steam Deck lesson. Turn on Git version control if it's offered. Then close Godot.
+  </li>
+  <li>
+    <span class="step-title">Ask the agent to set up the agent rules.</span>
+    Say: <em>"Project created. Set up CLAUDE.md, specs/ and git."</em> Read the <code>CLAUDE.md</code> it writes. It's your standing contract with the agent, so change anything you disagree with.
+  </li>
+  <li>
+    <span class="step-title">Predict the node tree.</span>
+    On paper or in a comment, write down the paddle scene's nodes: the root type and its children. Don't look anything up. You'll check it in step 7.
+  </li>
+  <li>
+    <span class="step-title">Write the spec.</span>
+    Create <code>specs/0001-paddle.md</code> from the <a href="../reference/spec-loop.html">template</a>, at most 10 lines. Include the speed, the keys, and what happens at the screen edges. Then compare it with the model below.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0001 · Paddle moves
+
+Goal: the player slides a paddle along the bottom of the screen.
+
+Behaviour:
+- Paddle is a wide flat rectangle near the bottom, centred at start.
+- Left/right arrows (and A/D) move it at 600 px/s; release stops it instantly.
+- It cannot leave the screen.
+
+Done when:
+- Running the project shows the paddle; holding each key moves it; it stops at both edges.
+
+Not in this spec:
+- Ball, walls, bricks, score, gamepad tuning, art.</code></pre>
+      <p class="muted">Notice the "Not in this spec" line. Without it, "it cannot leave the screen" might get solved with wall bodies, which belong to a later spec.</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Build it in watched steps.</span>
+    Tell the agent: <em>"Implement specs/0001-paddle.md one step at a time. Stop after each step."</em> At each stop, use the <a href="../reference/spec-loop.html">review checklist</a>. Expect roughly four steps: input actions, paddle scene, paddle script, main scene. If a step does more than it said, say so.
+  </li>
+  <li>
+    <span class="step-title">Run it and compare.</span>
+    Open the editor (<code>godot --path ~/learning/godot/projects/breakout -e</code>) and press <em>Run Project</em> (▶, top right). Check each "Done when" line. Then open <code>paddle.tscn</code> and compare its Scene dock with your prediction from step 4.
+  </li>
+  <li>
+    <span class="step-title">Take the quiz below, from memory.</span>
+  </li>
+</ol>
+
+<h2>Check yourself</h2>
+<p class="muted">Answer without scrolling up. Effortful recall is what makes it stick, and a wrong answer now is useful.</p>
+<div class="quiz" id="quiz-0001"></div>
+<script type="application/json" data-quiz-for="quiz-0001">
+[
+  {
+    "q": "The paddle needs collisions, but its movement comes from your code. Which root node?",
+    "options": ["A RigidBody2D node", "A StaticBody2D node", "A CharacterBody2D node", "An Area2D node"],
+    "answer": 2,
+    "why": "CharacterBody2D detects collisions but leaves movement to your code. RigidBody2D is moved by the physics engine, StaticBody2D doesn't move, and Area2D only detects overlaps."
+  },
+  {
+    "q": "Why check <code>\"move_left\"</code> rather than the Left Arrow keycode?",
+    "options": ["Raw key checks only run once", "Actions skip the physics step entirely", "Godot forbids reading raw keys directly", "One action can bind many inputs"],
+    "answer": 3,
+    "why": "An action can be bound to keys, gamepad buttons and sticks, so the same code works on keyboard, controller and Steam Deck."
+  },
+  {
+    "q": "The agent writes <code>velocity.x = dir * SPEED * delta</code> and then calls <code>move_and_slide()</code>. What's wrong?",
+    "options": ["It applies delta a second time", "It should run inside _process instead", "Velocity must only be set once", "SPEED must be typed as int"],
+    "answer": 0,
+    "why": "move_and_slide() already applies the physics delta, so multiplying again makes the paddle crawl at about 1/60th of its intended speed."
+  },
+  {
+    "q": "In Godot, a scene is…",
+    "options": ["One level of the game", "A saved tree of nodes", "The window that renders output", "A folder of project assets"],
+    "answer": 1,
+    "why": "A scene is a node tree saved to a .tscn file, with one root node. It can be a level, but it can equally be a paddle, a brick or a menu."
+  },
+  {
+    "q": "Where does held-key movement belong?",
+    "options": ["Handling events in _input", "Signals from the InputMap", "Polling Input in _physics_process", "Inside the _ready callback"],
+    "answer": 2,
+    "why": "Held actions are polled every physics tick. _input() fires once per event, which suits one-off actions like jump."
+  },
+  {
+    "q": "Mid-step, the agent offers to add the ball \"while it's there\". You…",
+    "options": ["Allow it; saves a session", "Allow it if tests pass", "Let it finish, then review", "Stop it; ball needs spec"],
+    "answer": 3,
+    "why": "The ball is in \"Not in this spec\". Unspecced additions are exactly the large unreviewed changes you set out to avoid."
+  }
+]
+</script>
+
+<h2>Go deeper</h2>
+<p><strong>Primary source:</strong> <a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/nodes_and_scenes.html">Godot Docs, <em>Nodes and Scenes</em></a> (5 minutes), then <a href="https://docs.godotengine.org/en/stable/getting_started/first_2d_game/03.coding_the_player.html"><em>Your first 2D game: Coding the player</em></a>. That one moves a player with input actions, the same pattern you just reviewed, and is worth reading to see a second take on it.</p>
+<p>Keep these open: <a href="../reference/glossary.html">Glossary</a> · <a href="../reference/spec-loop.html">Spec loop</a></p>
+
+<div class="callout ask">
+  <span class="label">Ask your teacher</span>
+  <p>Anything unclear, from "why is the root a body and not a Sprite?" to "what is a .tscn file actually?", just ask in the chat. Questions you ask are signal for the next lesson.</p>
+</div>
+
+<nav class="lesson-nav">
+  <span class="muted">Start of course</span>
+  <span class="muted">Next: Lesson 2, the ball, walls and your first signal</span>
+</nav>
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/steps.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Spec Loop</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+<p class="kicker">Reference · Workflow</p>
+<h1>The spec loop</h1>
+<p class="subtitle">One small feature, specced, built in watched steps, reviewed, and run.</p>
+
+<h2>The loop</h2>
+<ol class="steps">
+  <li><span class="step-title">Predict.</span> Before writing anything, sketch the nodes and files you expect the feature to need.</li>
+  <li><span class="step-title">Spec.</span> Write <code>specs/NNNN-name.md</code>, about 10 lines at most. If it won't fit, it's more than one feature.</li>
+  <li><span class="step-title">Build in steps.</span> Ask the agent to implement the spec <em>one step at a time</em>, stopping after each one with a short explanation.</li>
+  <li><span class="step-title">Review each step.</span> Check it against the list below before saying "next".</li>
+  <li><span class="step-title">Run it.</span> Play the scene and check every "done when" line by hand.</li>
+  <li><span class="step-title">Compare.</span> Open the result in the editor and compare it with your prediction. The differences are where the learning is.</li>
+  <li><span class="step-title">Commit.</span> One spec, one commit.</li>
+</ol>
+
+<h2>Spec template</h2>
+<pre><code># NNNN · Feature name
+
+Goal: one sentence, from the player's point of view.
+
+Behaviour:
+- ...
+- ...
+
+Done when:
+- an observable check you can do by playing
+- ...
+
+Not in this spec:
+- the tempting next thing, written down so it stays out
+</code></pre>
+<p class="muted">The "Not in this spec" list matters more than it looks. It's how you stop the agent, and yourself, from adding "while we're here" changes.</p>
+
+<h2>Step review checklist</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Check</th><th>Why</th></tr>
+  <tr><td>Only does what this step said</td><td>Changes outside the step aren't reviewed.</td></tr>
+  <tr><td>Right node type for the job</td><td>See the <a href="glossary.html">glossary</a>, especially the four body types.</td></tr>
+  <tr><td>Static types (<code>var speed: float</code>, <code>-&gt; void</code>)</td><td>Catches errors at parse time and makes reviews easier.</td></tr>
+  <tr><td>Input via actions, never raw keycodes</td><td>Gamepad and Steam Deck support depend on it.</td></tr>
+  <tr><td>No <code>delta</code> before <code>move_and_slide()</code></td><td>The engine already applies it.</td></tr>
+  <tr><td>Follows the <a href="https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_styleguide.html">style guide</a></td><td><code>snake_case</code> functions and variables, <code>PascalCase</code> classes, tabs.</td></tr>
+  <tr><td>I can explain every line</td><td>If you can't, ask before moving on.</td></tr>
+</table>
+</div>
+
+<h2>What to say to the agent</h2>
+<pre><code>Implement specs/0001-paddle.md one step at a time.
+After each step, stop, show me what changed, and explain why.
+Don't start the next step until I say "next".</code></pre>
+
+<h2>Commands the agent uses</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Command</th><th>Does</th></tr>
+  <tr><td><code>godot --version</code></td><td>Confirms the installed engine version.</td></tr>
+  <tr><td><code>godot --path . --import</code></td><td>Opens the project headless, imports resources, quits. Catches broken scenes.</td></tr>
+  <tr><td><code>godot --path . --headless --quit-after 60</code></td><td>Runs the main scene for 60 frames without a window. Use it as a smoke test.</td></tr>
+  <tr><td><code>godot --path . -e</code></td><td>Opens the editor on this project.</td></tr>
+</table>
+</div>
+<p class="muted">Source: <a href="https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html">Command line tutorial</a>. Godot silently ignores unknown flags, so a typo won't produce an error.</p>
+
+<nav class="lesson-nav">
+  <a href="glossary.html">← Glossary</a>
+  <a href="../lessons/0001-paddle-nodes-and-input.html">Lesson 1</a>
+</nav>
+</main>
+<script src="../assets/steps.js"></script>
+</body>
+</html>
