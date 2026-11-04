@@ -1,15 +1,14 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://do2swyx6fg4w8"]
 
-[ext_resource type="Script" path="res://scripts/paddle.gd" id="1_paddle"]
+[ext_resource type="Script" uid="uid://blltyse2mmxe7" path="res://scripts/paddle.gd" id="1_paddle"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_paddle"]
 
-[node name="Paddle" type="CharacterBody2D"]
+[node name="Paddle" type="CharacterBody2D" unique_id=170978201]
 collision_layer = 2
-collision_mask = 1
 script = ExtResource("1_paddle")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1185714978]
 shape = SubResource("RectangleShape2D_paddle")
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=234440829]
