@@ -1,9 +1,17 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/paddle.tscn" id="2_paddle"]
+
+[ext_resource type="PackedScene" path="res://scenes/wall.tscn" id="3_wall"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
 [node name="Paddle" parent="." instance=ExtResource("2_paddle")]
+
+[node name="WallLeft" parent="." instance=ExtResource("3_wall")]
+
+[node name="WallRight" parent="." instance=ExtResource("3_wall")]
+
+[node name="WallTop" parent="." instance=ExtResource("3_wall")]
