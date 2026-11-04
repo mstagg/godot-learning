@@ -1,3 +1,4 @@
+class_name Ball
 extends CharacterBody2D
 
 @export var radius: float = 6.0:
@@ -16,8 +17,13 @@ extends CharacterBody2D
 
 func _ready() -> void:
 	self._apply_radius()
-	# Down-right at 45°: normalized() makes the direction length 1, so speed sets the length.
-	self.velocity = Vector2(1.0, 1.0).normalized() * self.speed
+
+
+func serve() -> void:
+	# Down at 45°, left or right on a coin flip (randf() is 0 to 1).
+	var x: float = -1.0 if randf() < 0.5 else 1.0
+	# normalized() makes the direction length 1, so speed sets the length.
+	self.velocity = Vector2(x, 1.0).normalized() * self.speed
 
 
 func _physics_process(delta_sec: float) -> void:

@@ -7,14 +7,19 @@ extends Node2D
 @onready var _wall_left: StaticBody2D = $WallLeft
 @onready var _wall_right: StaticBody2D = $WallRight
 @onready var _wall_top: StaticBody2D = $WallTop
-@onready var _ball: CharacterBody2D = $Ball
+@onready var _ball: Ball = $Ball
 
 
 func _ready() -> void:
+	self._place_walls(self.get_viewport_rect().size)
+	self.reset_game()
+
+
+func reset_game() -> void:
 	var screen_size: Vector2 = self.get_viewport_rect().size
 	self._paddle.position = Vector2(screen_size.x / 2.0, screen_size.y - self.paddle_bottom_margin)
-	self._place_walls(screen_size)
 	self._ball.position = screen_size / 2.0
+	self._ball.serve()
 
 
 func _place_walls(screen_size: Vector2) -> void:
