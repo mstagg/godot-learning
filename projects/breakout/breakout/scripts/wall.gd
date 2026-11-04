@@ -7,7 +7,6 @@ extends StaticBody2D
 		self._apply_size()
 
 @onready var _shape: CollisionShape2D = $CollisionShape2D
-@onready var _visual: ColorRect = $ColorRect
 
 
 func _ready() -> void:
@@ -19,5 +18,3 @@ func _apply_size() -> void:
 	if not self.is_node_ready():
 		return
 	(self._shape.shape as RectangleShape2D).size = self.size
-	self._visual.size = self.size
-	self._visual.position = -self.size / 2.0

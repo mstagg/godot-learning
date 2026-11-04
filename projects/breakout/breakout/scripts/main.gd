@@ -28,13 +28,14 @@ func reset_game() -> void:
 
 
 func _place_walls(screen_size: Vector2) -> void:
+	# Walls sit just outside the screen, so their inner faces are exactly on the screen edges.
 	var half: float = self.wall_thickness / 2.0
 	self._wall_left.size = Vector2(self.wall_thickness, screen_size.y)
-	self._wall_left.position = Vector2(half, screen_size.y / 2.0)
+	self._wall_left.position = Vector2(-half, screen_size.y / 2.0)
 	self._wall_right.size = Vector2(self.wall_thickness, screen_size.y)
-	self._wall_right.position = Vector2(screen_size.x - half, screen_size.y / 2.0)
+	self._wall_right.position = Vector2(screen_size.x + half, screen_size.y / 2.0)
 	self._wall_top.size = Vector2(screen_size.x, self.wall_thickness)
-	self._wall_top.position = Vector2(screen_size.x / 2.0, half)
+	self._wall_top.position = Vector2(screen_size.x / 2.0, -half)
 
 
 func _place_drain(screen_size: Vector2) -> void:
