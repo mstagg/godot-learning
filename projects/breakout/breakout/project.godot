@@ -35,6 +35,12 @@ paddle_right={
 ]
 }
 
+[layer_names]
+
+2d_physics/layer_1="walls"
+2d_physics/layer_2="paddle"
+2d_physics/layer_3="ball"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

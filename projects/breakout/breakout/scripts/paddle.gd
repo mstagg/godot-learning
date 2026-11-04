@@ -15,7 +15,7 @@ func _ready() -> void:
 	self._apply_size()
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(_delta_sec: float) -> void:
 	var direction: float = Input.get_axis("paddle_left", "paddle_right")
 	self.velocity.x = direction * self.speed
 	self.move_and_slide()
