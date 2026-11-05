@@ -1,11 +1,14 @@
 class_name Brick
 extends StaticBody2D
 
+signal destroyed(points: int)
+
 @export var size: Vector2 = Vector2(96.0, 24.0):
 	set(value):
 		# Plain `size`, not `self.size`: Godot makes `self.size` a compile error inside its own setter.
 		size = value
 		self._apply_size()
+@export var points: int = 10
 @export var border_width: float = 2.0:
 	set(value):
 		border_width = value
@@ -21,6 +24,7 @@ func _ready() -> void:
 
 
 func hit() -> void:
+	self.destroyed.emit(self.points)
 	self.queue_free()
 
 

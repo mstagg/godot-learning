@@ -1,4 +1,7 @@
+class_name GameWindow
 extends Node2D
+
+signal points_scored(points: int)
 
 const BRICK_SCENE: PackedScene = preload("res://scenes/brick.tscn")
 
@@ -74,4 +77,10 @@ func _build_bricks(screen_size: Vector2) -> void:
 				column * brick_size.x + brick_size.x / 2.0,
 				self.grid_top_margin + row * brick_size.y + brick_size.y / 2.0
 			)
+			brick.destroyed.connect(self._on_brick_destroyed)
 			self._bricks.add_child(brick)
+
+
+func _on_brick_destroyed(points: int) -> void:
+	# Pass the points up; the game root owns the score.
+	self.points_scored.emit(points)
