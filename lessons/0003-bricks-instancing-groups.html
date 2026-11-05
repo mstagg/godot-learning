@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bricks, Instancing, Groups</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+<p class="kicker">Lesson 3 · Breakout clone · about 45 minutes</p>
+<h1>Bricks to break</h1>
+<p class="subtitle">Making scenes from code, tagging nodes with groups, and a signal that carries a score.</p>
+
+<div class="win">
+  <span class="label">Your win</span>
+  <p>A wall of bricks fills the top of the screen. When the ball hits a brick, the brick disappears and your score goes up. You write four small specs, review every step, and can explain how one scene becomes fifty nodes at runtime.</p>
+</div>
+
+<div class="callout">
+  <span class="label">From last time</span>
+  <p><strong>Delta:</strong> both bodies collide. The difference is the argument. <code>move_and_collide(motion)</code> takes a <em>distance</em> for this tick, so you pass <code>velocity * delta</code>. <code>move_and_slide()</code> reads the <code>velocity</code> property and applies delta itself. If you pass a motion in, you multiply. If you set <code>velocity</code>, you don't.</p>
+  <p><strong>Body or area:</strong> a <code>StaticBody2D</code> drain would be solid, so the ball would bounce off the bottom like a fourth wall. It also has no <code>body_entered</code> signal, because nothing can overlap it. An <code>Area2D</code> is the "notice, don't block" node.</p>
+</div>
+
+<p>So far, every node in the game was placed by hand: one paddle, one ball, three walls, one drain. Breakout needs dozens of identical bricks, and placing those one by one in the editor would be slow and fragile. This lesson has the game build them from code. It also adds a way to label a whole set of nodes at once, and a signal that carries a value. Every later clone relies on these three: Galaga's enemy waves, Tetris's pieces, and the tactics game's units are all scenes made from code, tagged and counted.</p>
+
+<h2>Three ideas, in ten minutes</h2>
+
+<h3>1. A scene file is a template; <code>instantiate()</code> makes a copy</h3>
+<p>Loading a <code>.tscn</code> gives you a <strong><code>PackedScene</code></strong>: the saved scene, not yet a node. Calling <code>instantiate()</code> on it builds a fresh tree of nodes from that template. Then you have to add the new node to the tree with <code>add_child()</code>. Until then it exists in memory, but it isn't drawn, doesn't collide, and its <code>_ready()</code> hasn't run.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/scripting/nodes_and_scene_instances.html">Docs: Nodes and scene instances</a>. Covers <code>preload</code>, <code>instantiate()</code> and <code>add_child()</code>.</span></p>
+<pre><code>const BRICK_SCENE: PackedScene = preload("res://scenes/brick.tscn")
+
+func _spawn_brick(at: Vector2) -&gt; void:
+	var brick: Brick = BRICK_SCENE.instantiate()
+	brick.position = at
+	self.add_child(brick)</code></pre>
+<p><code>preload</code> loads the file once, when the script is parsed. That's right for a scene you'll use many times. The project's alternative is an <code>@export var brick_scene: PackedScene</code> that you fill in through the Inspector. Either is fine, and the spec should say which.</p>
+<p>Nodes made at runtime don't appear in the editor's Scene dock, because that only shows what's saved in the <code>.tscn</code>. To see them, run the game and open <strong>Scene → Remote</strong>. That's where you'll check your brick grid.</p>
+
+<h3>2. Groups are tags</h3>
+<p>A <strong>group</strong> is a named tag on a node. A node can be in any number of groups, and a group can hold nodes of any type, anywhere in the tree.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/scripting/groups.html">Docs: Groups</a>. Add groups in the Node dock's Groups tab, or with <code>add_to_group()</code> in code.</span> Three calls cover most uses:</p>
+<pre><code>self.add_to_group("bricks")                                   # tag me
+collider.is_in_group("bricks")                                # is that a brick?
+self.get_tree().get_nodes_in_group("bricks").size()           # how many are left?</code></pre>
+<p>Groups differ from <code>class_name</code> in one useful way: a group asks "what role does this play?", not "what script does it run?" A later "breakable" group could include bricks, a boss and a destructible wall, all with different scripts.</p>
+<p>The trap to catch in review: <code>queue_free()</code> doesn't delete a node immediately. It marks it for deletion at the end of the frame. Until then, the node is still in its groups. Code that frees a brick and then counts the "bricks" group in the same frame gets a count that's one too high.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-method-queue-free">Docs: <code>Node.queue_free()</code></a>. "Queues this node to be deleted at the end of the current frame."</span></p>
+
+<h3>3. Signals can carry data, and you connect to nodes you just made</h3>
+<p>Your <code>ball_drained</code> signal carried nothing. A signal can also pass values to its listeners:</p>
+<pre><code>signal destroyed(points: int)
+
+func hit() -&gt; void:
+	self.destroyed.emit(self.points)
+	self.queue_free()</code></pre>
+<p>Bricks made from code have no listener yet, so the game connects to each one right after creating it, before <code>add_child()</code>:</p>
+<pre><code>brick.destroyed.connect(self._on_brick_destroyed)
+
+func _on_brick_destroyed(points: int) -&gt; void:
+	self._score += points</code></pre>
+<p>That leaves one question: how does a brick know it was hit? A <code>StaticBody2D</code> has no "something bounced off me" signal. The ball is the one that finds out, because <code>move_and_collide()</code> hands it the collision, and <code>collision.get_collider()</code> is the brick. So the ball calls <code>hit()</code> on it. That isn't a parent calling a child. It's one node acting on a peer the physics engine introduced, and that's normal. Guard it, so the ball doesn't call <code>hit()</code> on a wall:</p>
+<pre><code>var collider: Node = collision.get_collider() as Node
+if collider.is_in_group("bricks"):
+	collider.hit()</code></pre>
+<p>One trade-off to notice: Godot can't check that a plain <code>Node</code> has a <code>hit()</code> method, so a typo there only fails when the line runs. <code>if collider is Brick:</code> would be checked, because <code>class_name Brick</code> makes it a type, like <code>Ball</code> and <code>Drain</code>. The group version accepts any node that plays the "brick" role. The class version accepts only that one script. Your spec picks one.</p>
+<p>Put together: the <strong>ball calls across</strong> to the brick, the <strong>brick signals up</strong> with its points, and the <strong>game</strong> owns the score. The brick never knows the score exists, and the ball never knows about scoring.</p>
+
+<h2>Do it</h2>
+<p class="muted">Use <code>/feature-spec</code> for each spec, as you did for 0005–0008. Write your own answers before opening each model.</p>
+<ol class="steps" data-steps-key="0003">
+  <li>
+    <span class="step-title">Predict the node tree.</span>
+    On paper, write what the running game's tree will look like once there are 50 bricks and a score label. Which nodes are in <code>game.tscn</code>, and which only exist at runtime? Which nodes are in the "bricks" group? You'll compare in step 6.
+  </li>
+  <li>
+    <span class="step-title">Spec 0009: rename <code>main</code> to <code>game</code>.</span>
+    Your idea from the recall. Do the rename yourself in the editor's <strong>FileSystem dock</strong> (right-click → Rename), so Godot updates every reference. Rename both <code>main.tscn</code> and <code>main.gd</code>, and the root node too. Then ask the agent to check that nothing still says "main", including <code>run/main_scene</code> in <code>project.godot</code>.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0009 · Rename main to game
+
+Goal: the scene that owns game state is called Game.
+
+Behaviour:
+- main.tscn → game.tscn, main.gd → game.gd, root node Main → Game.
+- Renamed in the editor's FileSystem dock so references update.
+- run/main_scene points at game.tscn.
+
+Done when:
+- F5 runs the game exactly as before.
+- Searching the project for "main" finds nothing but run/main_scene's key name.
+
+Not in this spec:
+- Any behaviour change, any other renames.</code></pre>
+      <p class="muted">A rename spec with no behaviour change sounds trivial. It's worth a commit of its own, so the bricks diff isn't buried under 30 renamed lines.</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Spec 0010: one brick.</span>
+    A single brick, placed by hand in <code>game.tscn</code>. The ball bounces off it and the brick disappears. Decide: its body type, size and colour, its collision layer, and what changes in the ball's mask. Then compare with the model.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0010 · One brick
+
+Goal: a brick the ball breaks by hitting it.
+
+Behaviour:
+- Brick is a StaticBody2D with a ColorRect, 80x24, its own scene, in group "bricks".
+- New collision layer 5 "bricks"; the ball's Mask adds "bricks".
+- The ball bounces off it as off a wall, then calls hit() if the collider is in "bricks".
+- hit() removes the brick with queue_free().
+- One brick placed by hand in game.tscn, near the top centre.
+
+Done when:
+- The ball bounces off the brick and the brick disappears on the first hit.
+- In Scene → Remote, the Brick node is gone after the hit.
+
+Not in this spec:
+- More bricks, score, multi-hit bricks, rebuilding bricks on reset.</code></pre>
+      <p class="muted">In review, check the bounce happens <em>before</em> <code>hit()</code>. The ball still needs the collision normal, and the order makes the intent obvious.</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Spec 0011: a grid from code.</span>
+    Replace the hand-placed brick with a grid the game builds in code. Decide the rows, columns and gap, which numbers are <code>@export</code>, and how the grid stays centred. Decide what <code>reset_game()</code> does about broken bricks: rebuild them, or leave them broken? Either is defensible; the spec must say.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0011 · Brick grid
+
+Goal: a wall of bricks fills the top of the screen.
+
+Behaviour:
+- game.gd builds a grid from brick.tscn with preload + instantiate() + add_child().
+- 5 rows × 12 columns, 4 px gap, centred horizontally, 60 px from the top.
+- rows, columns, gap and top margin are @export vars on game.gd.
+- The hand-placed brick from 0010 is removed.
+- reset_game() leaves broken bricks broken (a miss isn't a new level).
+
+Done when:
+- Running the game shows 60 bricks; Scene → Remote lists them under Game.
+- Changing columns in the Inspector before F5 changes the grid and it stays centred.
+
+Not in this spec:
+- Score, rebuilding bricks, level clear, brick colours by row.</code></pre>
+      <p class="muted">Watch where the agent creates bricks. In <code>_ready()</code> is right for this spec. Inside <code>reset_game()</code> would contradict "leaves broken bricks broken".</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Spec 0012: score.</span>
+    Each brick is worth points. The brick signals up with its points, the game adds them up, and a label shows the total. Decide: points per brick, where the label goes, and whether a miss resets the score.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0012 · Score
+
+Goal: I see my score go up as I break bricks.
+
+Behaviour:
+- Brick has signal destroyed(points: int) and @export var points = 10; hit() emits it before queue_free().
+- game.gd connects each brick's destroyed when it creates it, and adds points to _score.
+- A Label in the top-left shows "Score: N", updated on every change.
+- A miss does not reset the score.
+
+Done when:
+- Score starts at 0 and goes up by 10 per brick.
+- The score is unchanged after a miss.
+
+Not in this spec:
+- High score, saving, lives, level clear, label styling.</code></pre>
+      <p class="muted">The review question: does the brick reference the label or the game? It shouldn't. It only emits.</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Run it and compare.</span>
+    Run the game and check every "Done when" line. Open <strong>Scene → Remote</strong> and compare the live tree with your prediction from step 1. Select a brick in Remote, open the Node dock, and find its group.
+  </li>
+  <li>
+    <span class="step-title">Break it on purpose.</span>
+    In <code>ball.tscn</code>, untick <strong>bricks</strong> in the ball's Mask. Run it and describe what happens, and why. Then undo it with <code>git checkout</code>.
+  </li>
+  <li>
+    <span class="step-title">Take the quiz below, from memory.</span>
+  </li>
+</ol>
+
+<h2>Check yourself</h2>
+<p class="muted">Answer without scrolling up. The first two revisit last lesson on purpose.</p>
+<div class="quiz" id="quiz-0003"></div>
+<script type="application/json" data-quiz-for="quiz-0003">
+[
+  {
+    "q": "Which call needs you to multiply by <code>delta</code>?",
+    "options": ["move_and_slide(), after setting velocity", "move_and_collide(velocity * delta)", "Both of them", "Neither; the engine always applies it"],
+    "answer": 1,
+    "why": "move_and_collide takes a distance for this tick, so you convert speed to distance yourself. move_and_slide reads the velocity property and applies delta internally."
+  },
+  {
+    "q": "If the drain were a <code>StaticBody2D</code>, what would happen when you missed the ball?",
+    "options": ["Same as now, it resets", "The ball passes through and is gone", "The ball bounces off the bottom", "Godot raises an error at startup"],
+    "answer": 2,
+    "why": "A StaticBody2D is solid, so the ball bounces off it like a wall. It also has no body_entered signal, so nothing would trigger the reset."
+  },
+  {
+    "q": "You've preloaded <code>brick.tscn</code>. What gives you a brick in the running game?",
+    "options": ["BRICK_SCENE.new()", "instantiate(), then add_child()", "Only instantiate()", "duplicate() on the PackedScene"],
+    "answer": 1,
+    "why": "instantiate() builds the nodes from the template. Until add_child() puts them in the tree, they aren't drawn, don't collide, and their _ready() hasn't run."
+  },
+  {
+    "q": "Your 60 bricks don't show in the Scene dock while editing. Where do you see them?",
+    "options": ["They're missing; the grid failed", "In the FileSystem dock", "In Scene → Remote while running", "Only by printing them"],
+    "answer": 2,
+    "why": "The Scene dock shows what's saved in the .tscn file. Nodes made at runtime only exist in the live tree, which the Remote tab shows."
+  },
+  {
+    "q": "A brick calls <code>queue_free()</code>, then the game counts the \"bricks\" group in the same frame. With 1 brick left, the count is…",
+    "options": ["0", "1", "It raises an error", "It depends on the frame rate"],
+    "answer": 1,
+    "why": "queue_free() deletes at the end of the frame. Until then the node is still in its groups, so the count is one too high."
+  },
+  {
+    "q": "The ball hits a brick. Which wiring keeps each node's job separate?",
+    "options": ["Brick updates the label directly", "Ball adds points to the game's score", "Ball calls hit(), brick emits, game scores", "Game polls each brick every frame"],
+    "answer": 2,
+    "why": "The ball acts on the peer physics gave it, the brick signals up with its points, and the game owns the score. Nobody reaches into a node it doesn't own."
+  },
+  {
+    "q": "A group differs from <code>class_name</code> because a group…",
+    "options": ["Is faster to check at runtime", "Tags a role, across any script", "Only works on bodies", "Is required for signals"],
+    "answer": 1,
+    "why": "class_name says what script a node runs. A group says what role it plays, so bricks, a boss and a breakable wall can all share a \"breakable\" group with different scripts."
+  }
+]
+</script>
+
+<h2>Go deeper</h2>
+<p><strong>Primary source:</strong> <a href="https://docs.godotengine.org/en/stable/tutorials/scripting/nodes_and_scene_instances.html">Godot Docs, <em>Nodes and scene instances</em></a> (10 minutes), then <a href="https://docs.godotengine.org/en/stable/tutorials/scripting/groups.html"><em>Groups</em></a> (5 minutes).</p>
+<p>Keep these open: <a href="../reference/glossary.html">Glossary</a> · <a href="../reference/spec-loop.html">Spec loop</a></p>
+
+<div class="callout ask">
+  <span class="label">Ask your teacher</span>
+  <p>Anything unclear, from "why preload and not load?" to "should a brick be a StaticBody2D or an Area2D?", just ask in the chat. Questions you ask are signal for the next lesson.</p>
+</div>
+
+<nav class="lesson-nav">
+  <a href="0002-ball-walls-signals.html">← Lesson 2: the ball</a>
+  <a href="0004-palette-first-sprites.html">Lesson 4: first sprites →</a>
+</nav>
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/steps.js"></script>
+</body>
+</html>

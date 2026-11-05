@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Palette and Your First Sprites</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+<p class="kicker">Lesson 4 · Breakout clone · two sittings of about 30 minutes</p>
+<h1>Your first sprites</h1>
+<p class="subtitle">Drawing on a pixel grid, choosing a palette, and getting hand-made art into Godot without blurring it.</p>
+
+<div class="win">
+  <span class="label">Your win</span>
+  <p>The ball, bricks and paddle are pixel art you drew yourself, sharp at every size. You can explain why one brick texture fits any brick width, and why one setting made your art blurry in the play area but not outside it.</p>
+</div>
+
+<div class="callout">
+  <span class="label">Warm-up, from memory</span>
+  <p>Answer these before reading on. Write the answers down; don't just think them.</p>
+  <p>1. Your ball calls <code>move_and_collide(velocity * delta_sec)</code>, but your paddle calls <code>move_and_slide()</code> with no <code>delta</code>. Why the difference?<br>
+  2. You want a power-up capsule that the ball passes through, but that knows when it was touched. Which node type, and why not a <code>StaticBody2D</code>?<br>
+  3. In <code>_build_bricks()</code>, the old bricks are <code>queue_free()</code>'d and the new ones added in the same frame. For how long do both sets exist?</p>
+  <details>
+    <summary>Answers</summary>
+    <p>1. <code>move_and_collide</code> takes a <em>distance</em> for this tick, so you turn speed into distance yourself. <code>move_and_slide</code> reads the <code>velocity</code> property, a speed, and applies delta internally.<br>
+    2. <code>Area2D</code>. It notices overlaps through <code>body_entered</code> but doesn't block. A <code>StaticBody2D</code> is solid, so the ball would bounce off it, and it has no "something touched me" signal.<br>
+    3. Until the end of that frame. <code>queue_free()</code> deletes at frame end, so for one frame the old and new bricks overlap. Your comment in <code>game_window.gd</code> says exactly this.</p>
+  </details>
+</div>
+
+<p>Every visual in your game is still a placeholder: two <code>ColorRect</code>s per brick, one for the paddle, and a circle the ball draws in code. This lesson replaces all three with art you make. Half of it is drawing and half is engine work, and they're separate on purpose: do Part A in one sitting and Part B in the next.</p>
+<p>The engine half matters more than it looks. Getting textures into Godot, keeping pixels sharp, and fitting one image to many sizes all come up again in every 2D clone and in the tactics game's UI.</p>
+
+<h2>Part A: pixels (about 30 minutes)</h2>
+
+<h3>1. Pick an editor</h3>
+<p>This is your decision. Both export plain PNGs, which is all Godot needs.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Editor</th><th>Cost</th><th>Good at</th><th>Watch for</th></tr>
+  <tr class="pick"><td><a href="https://www.aseprite.org/">Aseprite</a></td><td>about $20</td><td>The standard. Most tutorials, including Lospec's, are shown in it. Best animation timeline and sprite-sheet export, which Galaga will need.</td><td>Paid. The free route is compiling it from source, which isn't worth your time.</td></tr>
+  <tr><td><a href="https://pixelorama.org/">Pixelorama</a></td><td>free (MIT)</td><td>Built in Godot. Covers everything this lesson needs, animation included.</td><td>Fewer tutorials, so you'll translate Aseprite instructions as you go.</td></tr>
+</table>
+</div>
+<p class="muted">Recommendation: Aseprite, because tutorials will match your screen and the next clone is animation-heavy. Pixelorama is a fine choice if you'd rather not pay yet. Switching later costs about an hour of relearning shortcuts.</p>
+
+<h3>2. A palette is your paint rack, and it's short on purpose</h3>
+<p>On the NES, each sprite could use <strong>three colours plus transparent</strong>. That's a technical limit, but it's also why NES art reads so clearly: three values per object, shade, base and highlight, with no room for mud. You'll work to the same rule.<span class="sidenote"><a href="https://lospec.com/palette-list/nintendo-entertainment-system">Lospec: NES palette</a>. 55 colours. Load it into your editor, then pick three per sprite.</span></p>
+<p>Your miniature-painting habits mostly transfer:</p>
+<ul>
+  <li><strong>Value does the work.</strong> Squint at your sprite, or view it in greyscale. If shade, base and highlight merge, change their values, not their hues.</li>
+  <li><strong>Hue-shift your ramps.</strong> As on a mini, shadows lean cooler and highlights lean warmer. A yellow brick's shade can be an orange-brown, not a darker yellow.</li>
+  <li><strong>One light source, top-left.</strong> It's the convention, and every sprite in the game must agree, or they won't read as one world. Think of a zenithal prime tilted to the left.</li>
+</ul>
+<p>Some habits don't transfer:</p>
+<ul>
+  <li><strong>No blending.</strong> You can't glaze. Every pixel is one flat palette colour, so a gradient is a decision about which pixel is which colour. Use the 1-pixel pencil and never an anti-aliased brush.</li>
+  <li><strong>No pillow shading.</strong> That's darkening toward every edge from the centre, the pixel equivalent of an all-over wash with no light direction. It looks puffy and directionless. Shade away from the light instead.</li>
+  <li><strong>Judge at 100%.</strong> You'll draw at 2000% zoom, but the player sees 1:1 (here, 2:1). Keep a second preview window at actual size open, the way you'd check a mini at tabletop distance.</li>
+</ul>
+
+<h3>3. Art scale: one art pixel is two screen pixels</h3>
+<p>Your game's sizes are all in screen pixels: a 12 px ball, a 140×20 paddle, bricks about 86×24. Drawn 1:1, the art would be so fine it wouldn't look like pixel art. So you'll draw at half size, and Godot will draw each art pixel as a 2×2 block. Your existing 2 px black brick border becomes a 1-pixel outline in the art.</p>
+<p class="muted">The usual pixel-art setup is a small base resolution scaled up for the whole game. You're not doing that now, because every size in your code is in screen pixels and that would be a large change. It's a good spec for later.</p>
+
+<h2>Part B: into Godot (about 30 minutes)</h2>
+
+<h3>4. Textures, and why your art will look blurry</h3>
+<p>Drop a PNG anywhere under <code>res://</code> and Godot imports it as a <strong><code>Texture2D</code></strong>, writing a <code>.import</code> file next to it. Commit both. The <code>.import</code> file holds the settings, and <code>.godot/</code> (which is gitignored) holds the converted copy.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html">Docs: Importing images</a>. In Godot 4, filtering is a property of whatever <em>draws</em> the texture, not of the import.</span></p>
+<p>When Godot draws a texture bigger than it is, it has to invent the in-between pixels. The default <strong>texture filter</strong>, Linear, blends neighbours, so a 2× scaled sprite gets soft, smeared edges. <strong>Nearest</strong> copies the closest pixel, giving hard, square blocks. Pixel art always wants Nearest.</p>
+<p>Set it once for the whole project in <strong>Project Settings → Rendering → Textures → Canvas Textures → Default Texture Filter</strong>. Then comes the trap I checked against your project's setup: <strong>that setting doesn't reach a <code>SubViewport</code></strong>, and your whole play area lives inside one since spec 0011. A SubViewport has its own <strong>Canvas Items → Default Texture Filter</strong> in the Inspector. Set it to Nearest too, or your sprites will be sharp everywhere except where the game is.</p>
+
+<h3>5. <code>Sprite2D</code> for fixed-size art</h3>
+<p>A <code>Sprite2D</code> draws one texture. With <code>centered</code> on (the default), it draws around its node's origin, just as your ball's <code>_draw()</code> does now. Set its <code>scale</code> to <code>(2, 2)</code> for your art scale. The ball never changes size, so it's a good fit.</p>
+<p>Scale the <em>sprite</em>, never the ball itself. Scaling a physics body scales its collision too, and uneven scale on collision shapes isn't supported. Collision size belongs on the shape (your <code>radius</code> setter), and visual size belongs on the visual.</p>
+
+<h3>6. <code>NinePatchRect</code> for art that stretches</h3>
+<p>Bricks are a different shape whenever the column count or window size changes. A <code>NinePatchRect</code> splits its texture into a 3×3 grid using four <strong>patch margins</strong>:<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/classes/class_ninepatchrect.html">Docs: <code>NinePatchRect</code></a>. Also called 9-slice. You'll use it again for every UI panel in the JRPG clone.</span></p>
+<svg viewBox="0 0 360 120" width="360" height="120" role="img" aria-label="A small 8 by 8 texture split by margins of 2 into nine regions, stretched into a wide brick: corners keep their size, top and bottom edges stretch sideways, side edges stretch vertically, and the centre stretches both ways." style="max-width:100%;font:11px sans-serif">
+  <g fill="none" stroke="currentColor">
+    <rect x="10" y="30" width="64" height="64"/>
+    <path d="M26 30v64M58 30v64M10 46h64M10 78h64" stroke-dasharray="3 2"/>
+    <rect x="130" y="30" width="220" height="64"/>
+    <path d="M146 30v64M334 30v64M130 46h220M130 78h220" stroke-dasharray="3 2"/>
+    <path d="M84 62h36m-6-4 6 4-6 4"/>
+  </g>
+  <g fill="currentColor">
+    <text x="10" y="20">brick.png, 8×8</text>
+    <text x="130" y="20">drawn at any size</text>
+    <text x="131" y="110">corners: fixed</text>
+    <text x="215" y="42">top edge: stretches →</text>
+    <text x="215" y="66">centre: stretches both ways</text>
+  </g>
+</svg>
+<p>Corners keep their size, the top and bottom edges stretch sideways, the left and right edges stretch vertically, and the centre fills the rest. Put the outline, highlight and shade in the margins, keep the centre one flat colour, and any brick width looks right. Stretch mode is fine for flat colour; Tile is only for patterned edges.</p>
+<p><code>NinePatchRect</code> is a <code>Control</code> with a <code>size</code>, just like the <code>ColorRect</code>s it replaces, so <code>_apply_size()</code> barely changes. Art scale is the one new part. The margins are in texture pixels, so to get 2× pixels, give the node half the brick's size and a <code>scale</code> of 2:</p>
+<pre><code>self._art.size = self.size / self.art_scale
+self._art.scale = Vector2(self.art_scale, self.art_scale)
+self._art.position = -self.size / 2.0</code></pre>
+
+<h2>Do it</h2>
+<p class="muted">Steps 1–4 are Part A, steps 5–10 are Part B. Use <code>/feature-spec</code> for each spec, and write your own before opening each model.</p>
+<ol class="steps" data-steps-key="0004">
+  <li>
+    <span class="step-title">Set up.</span>
+    Install your editor and load the NES palette from Lospec. Make an <code>art/</code> folder in the Breakout project, next to <code>scenes/</code>. Keep your editor's source files (<code>.aseprite</code> or <code>.pxo</code>) there too; Godot ignores file types it doesn't know.
+  </li>
+  <li>
+    <span class="step-title">Draw the ball: <code>art/ball.png</code>, 6×6.</span>
+    Three colours plus transparent. Try two silhouettes, a 2-4-6-6-4-2 diamond-ish one and a 4-6-6-6-6-4 squarer one, and keep whichever reads rounder at 100%. Add one highlight pixel toward the top-left. Export at 100% scale, not upscaled.
+  </li>
+  <li>
+    <span class="step-title">Draw the brick: <code>art/brick.png</code>, 8×8.</span>
+    The outer ring is a 1-pixel dark outline. Inside it, the top and left rows are highlight, the bottom and right rows are shade, and the 4×4 centre is flat base colour. The corner where highlight meets shade is your call. That makes margins of 2 on every side: outline plus one row.
+  </li>
+  <li>
+    <span class="step-title">Draw the paddle: <code>art/paddle.png</code>.</span>
+    Your design: you choose the size and margins. The paddle is 70×10 art pixels on screen, so a nine-patch with wider left and right margins can give it rounded or capped ends. Write the four margins down; your spec will need them.
+  </li>
+  <li>
+    <span class="step-title">Spec 0015: crisp pixels and a ball sprite.</span>
+    Decide: both filter settings, the node the sprite hangs on, what happens to <code>_draw()</code> and the <code>color</code> export, and what keeps the sprite matching the collision circle.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0015 · Crisp pixels and a ball sprite
+
+Goal: The ball is my own pixel-art sprite, sharp and not blurry.
+
+Behaviour:
+- Project Settings → Default Texture Filter: Nearest.
+- The play area's SubViewport: Canvas Items → Default Texture Filter: Nearest.
+- Ball gets a Sprite2D child showing art/ball.png, centred, scale (2, 2).
+- ball.gd's _draw() and color export are removed; radius still sizes the collision shape.
+
+Done when:
+- The ball shows my sprite, centred on the ball, the same size as before.
+- Zoomed in on a screenshot, the ball's pixels are hard squares with no blur.
+- The game otherwise plays exactly as before.
+
+Not in this spec:
+- Brick or paddle art
+- Keeping the sprite size in sync if radius changes
+- A pixel-art base resolution for the whole game</code></pre>
+      <p class="muted">Two things to catch in review. Does the agent scale the Sprite2D, or the Ball body? And does it delete <code>color</code> and leave nothing else drawing a circle underneath your sprite?</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Spec 0016: brick sprite.</span>
+    Decide: which nodes go and which arrive, the margins, where the art scale lives, and what happens to <code>border_width</code> now that the outline is part of the art.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0016 · Brick sprite
+
+Goal: Bricks show my pixel-art brick at whatever width the grid gives them.
+
+Behaviour:
+- Brick's Border and Fill ColorRects are replaced by one NinePatchRect, Art, using art/brick.png.
+- Patch margins 2 on every side; both axes Stretch.
+- brick.gd gets @export var art_scale: float = 2.0. Art's size is size / art_scale and its scale is art_scale, centred on the brick.
+- border_width is removed; the outline is in the art.
+- The collision shape is unchanged.
+
+Done when:
+- Every brick shows my art with a crisp 2 px outline.
+- Changing brick_columns in the Inspector still fills the row with bricks.
+- Hits, score and rebuilding on a miss behave as before.
+
+Not in this spec:
+- Paddle art
+- Colours per row
+- Cracked or multi-hit bricks
+- Tiled textures</code></pre>
+      <p class="muted">The review question: is <code>size / art_scale</code> applied to the NinePatchRect's <code>size</code>, with the 2× on its <code>scale</code>, and nothing scaling the <code>StaticBody2D</code>? Also check that <code>size</code> is still the brick's true on-screen size. The collision shape and the grid both depend on it.</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Spec 0017: paddle sprite, with no model.</span>
+    Write this one alone, from your step 4 notes. Before implementing, ask the agent: <em>"Review specs/0017 against 0016. What decisions does it leave open, and what would you have to guess?"</em> Change the spec for every guess it names that you care about, then implement it. You'll notice <code>art_scale</code> now exists in two scripts. Decide whether to fix that now or list it under "Not in this spec". Both are defensible.
+  </li>
+  <li>
+    <span class="step-title">Run it and check.</span>
+    Check every "Done when" line in all three specs. Then take a screenshot and zoom in hard on a brick corner. Every art pixel should be a clean 2×2 block.
+  </li>
+  <li>
+    <span class="step-title">Break it on purpose.</span>
+    Set the SubViewport's Default Texture Filter back to <strong>Linear</strong> and run the game. Describe what you see, and why the project-wide setting didn't prevent it. Then undo it with <code>git checkout</code>.
+  </li>
+  <li>
+    <span class="step-title">Take the quiz below, from memory.</span>
+  </li>
+</ol>
+
+<h2>Check yourself</h2>
+<p class="muted">Answer without scrolling up. The first two revisit earlier lessons on purpose.</p>
+<div class="quiz" id="quiz-0004"></div>
+<script type="application/json" data-quiz-for="quiz-0004">
+[
+  {
+    "q": "Why does the ball multiply by <code>delta_sec</code> but the paddle doesn't?",
+    "options": ["move_and_collide takes a distance; move_and_slide applies delta itself", "Only the ball collides", "The paddle runs in _process", "The paddle's speed is already per-frame"],
+    "answer": 0,
+    "why": "Both bodies collide. The difference is the argument. move_and_collide wants this tick's distance, so you convert. move_and_slide reads velocity (a speed) and converts internally."
+  },
+  {
+    "q": "A power-up capsule must let the ball through but know it was touched. Which node?",
+    "options": ["StaticBody2D", "Area2D", "CharacterBody2D", "RigidBody2D"],
+    "answer": 1,
+    "why": "An Area2D detects overlaps (body_entered) without blocking. A StaticBody2D is solid and has no signal for being touched."
+  },
+  {
+    "q": "The project's Default Texture Filter is Nearest, but the ball is still blurry. Most likely cause?",
+    "options": ["The PNG was imported wrong", "The ball's scale isn't a whole number", "The play area's SubViewport has its own filter setting", "Sprite2D ignores texture filters"],
+    "answer": 2,
+    "why": "The project setting reaches the main viewport, not SubViewports. Your play area is inside one, so it needs its own Canvas Items → Default Texture Filter set to Nearest."
+  },
+  {
+    "q": "A brick's NinePatchRect goes from 40 to 60 art pixels wide. What happens to its corners?",
+    "options": ["They stretch by 50%", "They tile", "They're cropped", "They stay the same size"],
+    "answer": 3,
+    "why": "Corners are fixed. The top and bottom edges stretch sideways, the side edges stretch vertically, and the centre stretches both ways."
+  },
+  {
+    "q": "To draw the ball's art at 2×, what do you scale?",
+    "options": ["The Ball body", "The CollisionShape2D", "The Sprite2D", "The whole GameWindow"],
+    "answer": 2,
+    "why": "Scale the visual only. Scaling the body also scales its collision, and collision size belongs on the shape, which your radius setter already controls."
+  },
+  {
+    "q": "You shade a brick darker toward all four edges from the centre. What's the problem?",
+    "options": ["Too many colours", "Pillow shading: no light direction", "Edges should be lighter", "Nothing, it's standard"],
+    "answer": 1,
+    "why": "Pillow shading ignores the light source and looks puffy. Pick one light (top-left), highlight the edges facing it and shade the ones facing away."
+  },
+  {
+    "q": "You export ball.png at 200% from your editor and keep the Sprite2D at scale 2. The ball…",
+    "options": ["Looks correct", "Is blurry", "Fails to import", "Is twice the intended size"],
+    "answer": 3,
+    "why": "Scaling twice gives 4× in total. Export art at 100% and let Godot do the scaling, so the art scale lives in one place."
+  }
+]
+</script>
+
+<h2>Go deeper</h2>
+<p><strong>Primary source:</strong> Lospec's <a href="https://lospec.com/pixel-art-where-to-start"><em>Pixel Art: Where to Start</em></a>, the "Introductory Tutorial" section (15 minutes; skip the Communities section). Then <a href="https://docs.godotengine.org/en/stable/classes/class_ninepatchrect.html">the <code>NinePatchRect</code> class page</a> (5 minutes).</p>
+<p>Keep these open: <a href="../reference/glossary.html">Glossary</a> · <a href="../reference/spec-loop.html">Spec loop</a></p>
+
+<div class="callout ask">
+  <span class="label">Ask your teacher</span>
+  <p>Stuck on a sprite? Export it and ask in the chat for a critique: "does this read as a ball at 100%?" is a fine question. Engine questions like "why not one big texture atlas?" are welcome too.</p>
+</div>
+
+<nav class="lesson-nav">
+  <a href="0003-bricks-instancing-groups.html">← Lesson 3: bricks</a>
+  <span class="muted">Next: Lesson 5, lives, game over and a level clear</span>
+</nav>
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/steps.js"></script>
+</body>
+</html>

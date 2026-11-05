@@ -33,6 +33,24 @@
 
   <dt>Main scene</dt>
   <dd>The scene Godot loads first when the game runs. Set in Project Settings.</dd>
+
+  <dt><code>PackedScene</code></dt>
+  <dd>A loaded <code>.tscn</code> file: a template, not yet a node. Get one with <code>preload("res://…tscn")</code> or an <code>@export var x: PackedScene</code>. <span class="see"><a href="https://docs.godotengine.org/en/stable/tutorials/scripting/nodes_and_scene_instances.html">Docs</a></span></dd>
+
+  <dt><code>instantiate()</code></dt>
+  <dd>Builds a fresh node tree from a <code>PackedScene</code>. It isn't drawn, doesn't collide, and its <code>_ready()</code> hasn't run until you <code>add_child()</code> it.</dd>
+
+  <dt><code>queue_free()</code></dt>
+  <dd>Deletes a node at the end of the current frame, not immediately. Until then it is still in the tree and in its groups. <span class="see"><a href="https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-method-queue-free">Docs</a></span></dd>
+
+  <dt>Group</dt>
+  <dd>A named tag on a node, such as "bricks". Any node can be in many groups. Use <code>is_in_group()</code> to check a role and <code>get_tree().get_nodes_in_group()</code> to find every member. <span class="see"><a href="https://docs.godotengine.org/en/stable/tutorials/scripting/groups.html">Docs</a></span></dd>
+
+  <dt><code>class_name</code></dt>
+  <dd>Registers a script as a named type, like <code>Ball</code>. Variables can then be typed <code>var b: Ball</code>, so the type check knows its methods and signals.</dd>
+
+  <dt>Remote tab</dt>
+  <dd>Scene → Remote while the game runs: the live tree, including nodes made from code, with editable properties.</dd>
 </dl>
 
 <h2>Input</h2>
@@ -62,6 +80,10 @@
   <dd>Detects overlaps and emits signals when bodies enter or exit. Doesn't block movement.</dd>
   <dt><code>CollisionShape2D</code></dt>
   <dd>The child node that gives a body or area its shape. A body with no shape collides with nothing.</dd>
+  <dt><code>Vector2</code></dt>
+  <dd>Two floats, <code>x</code> and <code>y</code>, read as an arrow from <code>(0, 0)</code> to <code>(x, y)</code>. The arrow has a direction and a length; what they <em>mean</em> (position, velocity, size) depends on the code using it. y grows downward.</dd>
+  <dt><code>normalized()</code></dt>
+  <dd>Returns the same direction with length 1, so <code>dir.normalized() * speed</code> means "this way, this fast".</dd>
   <dt><code>velocity</code></dt>
   <dd>A <code>CharacterBody2D</code> property: the speed and direction in pixels per second. You set it, then call <code>move_and_slide()</code>.</dd>
   <dt><code>move_and_slide()</code></dt>
@@ -92,6 +114,20 @@
   <dd>Runs once per rendered frame, which varies. Use it for visuals that don't touch physics.</dd>
   <dt><code>delta</code></dt>
   <dd>Seconds since the last call. Multiply per-second rates by it, unless the engine already does (see <code>move_and_slide</code>).</dd>
+</dl>
+
+<h2>Art and textures</h2>
+<dl class="glossary">
+  <dt><code>Texture2D</code></dt>
+  <dd>An image Godot can draw. A PNG under <code>res://</code> is imported as one automatically. Commit its <code>.import</code> file, which holds the import settings. <span class="see"><a href="https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html">Docs</a></span></dd>
+  <dt>Texture filter</dt>
+  <dd>How a texture is drawn when it's scaled. Linear blends neighbouring pixels (blurry); Nearest copies the closest one (hard squares, right for pixel art). The project default doesn't reach a <code>SubViewport</code>, which has its own Canvas Items → Default Texture Filter.</dd>
+  <dt><code>Sprite2D</code></dt>
+  <dd>A node that draws one texture, centred on its origin by default. Use it for art that never changes size. Scale the sprite, not the physics body it belongs to. <span class="see"><a href="https://docs.godotengine.org/en/stable/classes/class_sprite2d.html">Docs</a></span></dd>
+  <dt><code>NinePatchRect</code></dt>
+  <dd>A <code>Control</code> that splits a texture into a 3×3 grid with four patch margins. Corners stay fixed, edges stretch along one axis, and the centre stretches both ways, so one texture fits any size. Also called 9-slice. <span class="see"><a href="https://docs.godotengine.org/en/stable/classes/class_ninepatchrect.html">Docs</a></span></dd>
+  <dt>Art scale</dt>
+  <dd>Screen pixels per art pixel. In Breakout it's 2: art is drawn at half size and scaled 2× with Nearest filtering. Export art at 100%, so the scaling happens in one place.</dd>
 </dl>
 
 <h2>Our workflow</h2>
