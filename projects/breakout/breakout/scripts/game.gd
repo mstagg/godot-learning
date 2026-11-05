@@ -23,7 +23,8 @@ func _ready() -> void:
 	var screen_size: Vector2 = self.get_viewport_rect().size
 	self._place_walls(screen_size)
 	self._place_drain(screen_size)
-	self._drain.ball_drained.connect(self.reset_game)
+	# Deferred: the drain fires during the physics step, and new bricks can't be added mid-step.
+	self._drain.ball_drained.connect(self.reset_game, CONNECT_DEFERRED)
 	self.reset_game()
 
 
