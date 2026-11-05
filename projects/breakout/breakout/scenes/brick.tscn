@@ -1,20 +1,20 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://ck6rjgnlibjpp"]
 
-[ext_resource type="Script" path="res://scripts/brick.gd" id="1_brick"]
+[ext_resource type="Script" uid="uid://ci7yikioxoyec" path="res://scripts/brick.gd" id="1_brick"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_brick"]
 resource_local_to_scene = true
 
-[node name="Brick" type="StaticBody2D" groups=["bricks"]]
+[node name="Brick" type="StaticBody2D" unique_id=347586546 groups=["bricks"]]
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("1_brick")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1203605993]
 shape = SubResource("RectangleShape2D_brick")
 
-[node name="Border" type="ColorRect" parent="."]
+[node name="Border" type="ColorRect" parent="." unique_id=669994545]
 color = Color(0, 0, 0, 1)
 
-[node name="Fill" type="ColorRect" parent="."]
+[node name="Fill" type="ColorRect" parent="." unique_id=1568138078]
 color = Color(1, 1, 0, 1)
