@@ -20,11 +20,17 @@ const BRICK_SCENE: PackedScene = preload("res://scenes/brick.tscn")
 
 
 func _ready() -> void:
+	# Deferred: the drain fires during the physics step, and new bricks can't be added mid-step.
+	self._drain.ball_drained.connect(self.reset_game, CONNECT_DEFERRED)
+	# Inside a SubViewport the real size only arrives after _ready, so lay out again whenever it changes.
+	self.get_viewport().size_changed.connect(self._on_viewport_size_changed)
+	self._on_viewport_size_changed()
+
+
+func _on_viewport_size_changed() -> void:
 	var screen_size: Vector2 = self.get_viewport_rect().size
 	self._place_walls(screen_size)
 	self._place_drain(screen_size)
-	# Deferred: the drain fires during the physics step, and new bricks can't be added mid-step.
-	self._drain.ball_drained.connect(self.reset_game, CONNECT_DEFERRED)
 	self.reset_game()
 
 

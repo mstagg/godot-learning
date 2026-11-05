@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://dgwpa37dkieu7"]
+
+[ext_resource type="Script" uid="uid://q2j40q27b705" path="res://scripts/game_window.gd" id="1_iywne"]
+[ext_resource type="PackedScene" uid="uid://do2swyx6fg4w8" path="res://scenes/paddle.tscn" id="2_p57ef"]
+[ext_resource type="PackedScene" path="res://scenes/wall.tscn" id="3_u5sy4"]
+[ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="4_gee14"]
+[ext_resource type="PackedScene" path="res://scenes/drain.tscn" id="5_0tnpc"]
+
+[node name="GameWindow" type="Node2D" unique_id=1882791664]
+script = ExtResource("1_iywne")
+
+[node name="Paddle" parent="." unique_id=1497069099 instance=ExtResource("2_p57ef")]
+
+[node name="WallLeft" parent="." unique_id=1371395890 instance=ExtResource("3_u5sy4")]
+
+[node name="WallRight" parent="." unique_id=355212425 instance=ExtResource("3_u5sy4")]
+
+[node name="WallTop" parent="." unique_id=2082575053 instance=ExtResource("3_u5sy4")]
+
+[node name="Ball" parent="." unique_id=1290857440 instance=ExtResource("4_gee14")]
+
+[node name="Drain" parent="." unique_id=814846938 instance=ExtResource("5_0tnpc")]
+
+[node name="Bricks" type="Node2D" parent="."]
