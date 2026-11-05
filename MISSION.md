@@ -6,7 +6,7 @@ Build a solid Godot foundation, so that a later, separate project (an Ogre Battl
 ## Success looks like
 - Build a series of small clones of existing games, starting with NES-era 2D and moving up in complexity through later eras into 3D. Together they touch most of the engine: 2D, 3D, UI, physics, animation, audio, save/load, input, shaders, export.
 - Write and run specs for each project (spec-driven dev) and direct an agent to implement them, with tests where Godot allows.
-- Explain, in my own words, how scenes, nodes, signals, resources and autoloads fit together, and review agent-written GDScript critically.
+- Explain, in my own words, how scenes, nodes, signals, resources and autoloads fit together, and review all agent-written code critically.
 - Export a project to Linux/desktop and run it on a Steam Deck.
 - Make simple pixel-art sprites, tilesets and animations by hand, and find and correctly license free assets for anything I don't make.
 - Start the tactics game knowing which engine features, patterns and workflows to reach for.
