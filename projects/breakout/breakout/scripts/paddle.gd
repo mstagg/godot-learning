@@ -1,3 +1,4 @@
+class_name Paddle
 extends CharacterBody2D
 
 @export var size: Vector2 = Vector2(140.0, 20.0):

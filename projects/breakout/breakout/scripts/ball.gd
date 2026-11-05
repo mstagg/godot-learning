@@ -6,7 +6,9 @@ extends CharacterBody2D
 		# Plain `radius`, not `self.radius`: Godot makes `self.radius` a compile error inside its own setter.
 		radius = value
 		self._apply_radius()
-@export var speed: float = 200.0
+@export var speed: float = 325.0
+@export var speed_increase: float = 20.0
+@export var max_speed: float = 600.0
 @export var color: Color = Color.WHITE:
 	set(value):
 		color = value
@@ -34,6 +36,10 @@ func _physics_process(delta_sec: float) -> void:
 		var brick: Brick = collision.get_collider() as Brick
 		if brick:
 			brick.hit()
+		if collision.get_collider() is Paddle:
+			# Same direction, a little faster, never past max_speed.
+			var new_speed: float = minf(self.velocity.length() + self.speed_increase, self.max_speed)
+			self.velocity = self.velocity.normalized() * new_speed
 
 
 func _draw() -> void:
