@@ -31,6 +31,9 @@ func _physics_process(delta_sec: float) -> void:
 	var collision: KinematicCollision2D = self.move_and_collide(self.velocity * delta_sec)
 	if collision:
 		self.velocity = self.velocity.bounce(collision.get_normal())
+		var brick: Brick = collision.get_collider() as Brick
+		if brick:
+			brick.hit()
 
 
 func _draw() -> void:

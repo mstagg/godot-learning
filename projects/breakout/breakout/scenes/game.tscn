@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/wall.tscn" id="3_u5sy4"]
 [ext_resource type="PackedScene" path="res://scenes/ball.tscn" id="4_gee14"]
 [ext_resource type="PackedScene" path="res://scenes/drain.tscn" id="5_0tnpc"]
+[ext_resource type="PackedScene" path="res://scenes/brick.tscn" id="6_brick"]
 
 [node name="Game" type="Node2D" unique_id=1882791664]
 script = ExtResource("1_iywne")
@@ -21,3 +22,4 @@ script = ExtResource("1_iywne")
 
 [node name="Drain" parent="." unique_id=814846938 instance=ExtResource("5_0tnpc")]
 
+[node name="Brick" parent="." instance=ExtResource("6_brick")]

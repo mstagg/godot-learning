@@ -3,6 +3,7 @@ extends Node2D
 @export var paddle_bottom_margin: float = 40.0
 @export var wall_thickness: float = 10.0
 @export var drain_height: float = 10.0
+@export var brick_top_margin: float = 280.0
 
 @onready var _paddle: Node2D = $Paddle
 @onready var _wall_left: StaticBody2D = $WallLeft
@@ -10,12 +11,14 @@ extends Node2D
 @onready var _wall_top: StaticBody2D = $WallTop
 @onready var _ball: Ball = $Ball
 @onready var _drain: Drain = $Drain
+@onready var _brick: Brick = $Brick
 
 
 func _ready() -> void:
 	var screen_size: Vector2 = self.get_viewport_rect().size
 	self._place_walls(screen_size)
 	self._place_drain(screen_size)
+	self._place_brick(screen_size)
 	self._drain.ball_drained.connect(self.reset_game)
 	self.reset_game()
 
@@ -41,3 +44,8 @@ func _place_walls(screen_size: Vector2) -> void:
 func _place_drain(screen_size: Vector2) -> void:
 	self._drain.size = Vector2(screen_size.x, self.drain_height)
 	self._drain.position = Vector2(screen_size.x / 2.0, screen_size.y - self.drain_height / 2.0)
+
+
+func _place_brick(screen_size: Vector2) -> void:
+	# Placed once, not in reset_game(): a broken brick stays gone (spec 0009).
+	self._brick.position = Vector2(screen_size.x / 2.0, self.brick_top_margin + self._brick.size.y / 2.0)
