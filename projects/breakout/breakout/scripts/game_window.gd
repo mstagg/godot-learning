@@ -2,6 +2,7 @@ class_name GameWindow
 extends Node2D
 
 signal points_scored(points: int)
+signal ball_lost
 
 const BRICK_SCENE: PackedScene = preload("res://scenes/brick.tscn")
 
@@ -23,8 +24,9 @@ const BRICK_SCENE: PackedScene = preload("res://scenes/brick.tscn")
 
 
 func _ready() -> void:
-	# Deferred: the drain fires during the physics step, and new bricks can't be added mid-step.
-	self._drain.ball_drained.connect(self.reset_game, CONNECT_DEFERRED)
+	# Pass the miss up; the game root decides what it means.
+	# Deferred: the drain fires during the physics step, and a game over adds new bricks, which can't happen mid-step.
+	self._drain.ball_drained.connect(self.ball_lost.emit, CONNECT_DEFERRED)
 	# Inside a SubViewport the real size only arrives after _ready, so lay out again whenever it changes.
 	self.get_viewport().size_changed.connect(self._on_viewport_size_changed)
 	self._on_viewport_size_changed()
@@ -34,14 +36,18 @@ func _on_viewport_size_changed() -> void:
 	var screen_size: Vector2 = self.get_viewport_rect().size
 	self._place_walls(screen_size)
 	self._place_drain(screen_size)
-	self.reset_game()
+	self.build_level()
 
 
-func reset_game() -> void:
+func build_level() -> void:
+	self._build_bricks(self.get_viewport_rect().size)
+	self.reset_ball_and_paddle()
+
+
+func reset_ball_and_paddle() -> void:
 	var screen_size: Vector2 = self.get_viewport_rect().size
 	self._paddle.position = Vector2(screen_size.x / 2.0, screen_size.y - self.paddle_bottom_margin)
 	self._paddle.hold_ball(self._ball)
-	self._build_bricks(screen_size)
 
 
 func _place_walls(screen_size: Vector2) -> void:
