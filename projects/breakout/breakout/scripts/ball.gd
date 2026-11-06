@@ -1,7 +1,7 @@
 class_name Ball
 extends CharacterBody2D
 
-@export var radius: float = 6.0:
+@export var radius: float = 9.0:
 	set(value):
 		# Plain `radius`, not `self.radius`: Godot makes `self.radius` a compile error inside its own setter.
 		radius = value
