@@ -72,18 +72,18 @@ func _set_state(new_state: State) -&gt; void:
 <p class="muted">Use <code>/feature-spec</code> for each spec, and write your own before opening each model. The agent builds a whole spec at once; review it as one diff.</p>
 <ol class="steps" data-steps-key="0005">
   <li>
-    <span class="step-title">Spec 0018: lives.</span>
+    <span class="step-title">Spec 0020: lives.</span>
     Decide: who owns the lives, how a miss gets from the drain to that owner, what a miss now does to the bricks (this changes 0013's behaviour), and what happens on the last life <em>before</em> there's a game-over screen.
     <details>
       <summary>Model spec (open after writing yours)</summary>
-<pre><code># 0018 · Lives
+<pre><code># 0020 · Lives
 Goal: I get three balls; a miss costs a life instead of rebuilding the wall.
 Behaviour:
 - game.gd owns _lives (@export var starting_lives: int = 3); its setter calls GameStateWindow.set_lives(), like _score_total.
 - New LivesLabel under the score: "Lives 3".
 - The drain no longer calls reset_game. game_window.gd re-emits it, still deferred, as ball_lost.
-- reset_game splits: serve_ball() returns the paddle and ball and serves; build_level() rebuilds the bricks, then serves.
-- With lives left, game.gd calls serve_ball(); broken bricks stay broken.
+- reset_game splits: reset_ball() returns the paddle to the centre and calls paddle.hold_ball(ball); build_level() rebuilds the bricks, then calls reset_ball().
+- With lives left, game.gd calls reset_ball(); broken bricks stay broken.
 - On the last life, for now, it all restarts: lives and score back to start, build_level().
 Done when:
 - "Lives 3" shows at start, and each miss drops it by one, with the broken bricks still gone.
@@ -91,17 +91,16 @@ Done when:
 Not in this spec:
 - A game-over screen or pausing
 - Ball icons instead of a number
-- Extra lives from score
-- Serving from the paddle on a button press</code></pre>
+- Extra lives from score</code></pre>
       <p class="muted">Review questions. Is the drain still connected deferred? If not, <code>build_level()</code> adds bricks mid physics step, the bug you fixed in lesson 2. Does a window resize still call <code>build_level()</code> from inside <code>game_window.gd</code>? And is <code>reset_game</code> gone completely, not left dangling?</p>
     </details>
   </li>
   <li>
-    <span class="step-title">Spec 0019: game over.</span>
+    <span class="step-title">Spec 0021: game over.</span>
     Decide: the state names, where the message lives, which nodes get which Process Mode, the input action and its bindings, and what a restart resets.
     <details>
       <summary>Model spec (open after writing yours)</summary>
-<pre><code># 0019 · Game over
+<pre><code># 0021 · Game over
 Goal: Losing the last ball freezes the game behind GAME OVER until I press a button to play again.
 Behaviour:
 - game.gd gets enum State { PLAYING, GAME_OVER } and _state; every change goes through _set_state().
@@ -119,7 +118,7 @@ Not in this spec:
 - High scores
 - A pause key during play
 - Animating the message</code></pre>
-      <p class="muted">Review questions. Did the agent set Process Mode on the right two nodes, and on nothing inside the play area? Does <code>_set_state()</code> do the pausing, or is <code>paused = true</code> scattered across handlers? And is 0018's "restart on the last life" code replaced, not left beside the new path?</p>
+      <p class="muted">Review questions. Did the agent set Process Mode on the right two nodes, and on nothing inside the play area? Does <code>_set_state()</code> do the pausing, or is <code>paused = true</code> scattered across handlers? And is 0020's "restart on the last life" code replaced, not left beside the new path? Last, Space is now bound to both <code>confirm</code> and your <code>launch</code>: does one press at GAME OVER restart the game <em>and</em> launch the ball? Try it, and decide whether that's a bug.</p>
     </details>
   </li>
   <li>
@@ -127,12 +126,12 @@ Not in this spec:
     Set GameWindow's Process Mode back to <strong>Inherit</strong>, play to game over, and watch. Describe what you see and why, using the table in idea 2. Then undo it with <code>git checkout</code>.
   </li>
   <li>
-    <span class="step-title">Spec 0020: level clear, with no model.</span>
+    <span class="step-title">Spec 0022: level clear, with no model.</span>
     Write this one alone. Decide how the play area knows the last brick went (idea 3), what it tells the root, what the message says, what carries over to level 2 (score? lives? ball speed?), and how <code>LevelLabel</code> stops being hard-coded. Level 2 is the same wall.
   </li>
   <li>
     <span class="step-title">Have the agent stress-test your states.</span>
-    Before implementing 0020, ask: <em>"Make a table with every state in game.gd as rows (PLAYING, GAME_OVER, LEVEL_CLEAR) and every event as columns: ball drained, last brick broken, confirm pressed, window resized. In each cell, say what specs/0020 plus the current code would do, and mark every cell the spec leaves undecided."</em> Decide each marked cell, and put the decision in the spec or under "Not in this spec". Watch the resize column. Signal callbacks run while paused (idea 2).
+    Before implementing 0022, ask: <em>"Make a table with every state in game.gd as rows (PLAYING, GAME_OVER, LEVEL_CLEAR) and every event as columns: ball drained, last brick broken, confirm pressed, window resized. In each cell, say what specs/0022 plus the current code would do, and mark every cell the spec leaves undecided."</em> Decide each marked cell, and put the decision in the spec or under "Not in this spec". Watch the resize column. Signal callbacks run while paused (idea 2).
   </li>
   <li>
     <span class="step-title">Run it and check.</span>
@@ -142,6 +141,14 @@ Not in this spec:
     <span class="step-title">Take the quiz below, from memory.</span>
   </li>
 </ol>
+
+<h2>Push it further</h2>
+<p>This is the last Breakout lesson. These are open-ended, with no model specs: walk your own path and write each one with <code>/feature-spec</code>.</p>
+<ul>
+  <li><strong>A fuller state machine.</strong> Since 0018, "ball on the paddle" is really its own state. Is it SERVING, or still PLAYING with a held ball? Add a pause key (PAUSED) and decide which states it works in. Watch for when the state table outgrows one <code>match</code>.</li>
+  <li><strong>Distinct levels.</strong> Describe each wall as data, for example an array of strings where <code>#</code> is a brick and <code>.</code> is a gap, and have <code>build_level()</code> read level <em>n</em>. Decide what happens after the last level. This is a step toward Tetris's lesson on Resources.</li>
+  <li><strong>Difficulty per level.</strong> Change the starting ball speed or <code>paddle_influence</code> per level, from the same level data.</li>
+</ul>
 
 <h2>Check yourself</h2>
 <p class="muted">Answer without scrolling up. The first two revisit earlier lessons on purpose.</p>
@@ -204,7 +211,7 @@ Not in this spec:
 
 <nav class="lesson-nav">
   <a href="0004-palette-first-sprites.html">← Lesson 4: your first sprites</a>
-  <span class="muted">Next: Lesson 6, to be planned. Candidates: sound, or a pixel-art base resolution.</span>
+  <span class="muted">Next: Galaga, the first C# project</span>
 </nav>
 </main>
 <script src="../assets/quiz.js"></script>
