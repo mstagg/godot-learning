@@ -9,10 +9,6 @@ extends CharacterBody2D
 @export var speed: float = 325.0
 @export var speed_increase: float = 20.0
 @export var max_speed: float = 600.0
-@export var color: Color = Color.WHITE:
-	set(value):
-		color = value
-		self.queue_redraw()
 
 @onready var _shape: CollisionShape2D = $CollisionShape2D
 
@@ -42,14 +38,8 @@ func _physics_process(delta_sec: float) -> void:
 			self.velocity = self.velocity.normalized() * new_speed
 
 
-func _draw() -> void:
-	# Drawn around the node's origin, so the circle is centred on the ball's position.
-	self.draw_circle(Vector2.ZERO, self.radius, self.color)
-
-
 func _apply_radius() -> void:
 	# The setter can run before the child nodes exist (while the scene loads).
 	if not self.is_node_ready():
 		return
 	(self._shape.shape as CircleShape2D).radius = self.radius
-	self.queue_redraw()
