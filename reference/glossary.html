@@ -106,8 +106,20 @@
   <dd>A parent calls methods on its children; a child emits signals and lets the parent react. A child that calls <code>get_parent()</code> is tied to that one parent.</dd>
 </dl>
 
+<h2>Game structure</h2>
+<dl class="glossary">
+  <dt>Game state</dt>
+  <dd>What the game is doing right now, such as PLAYING or GAME_OVER. Hold it in one <code>enum</code> variable with one owner, and change it through one function, so impossible combinations can't happen. <span class="see"><a href="https://gameprogrammingpatterns.com/state.html">Game Programming Patterns</a></span></dd>
+  <dt><code>CanvasLayer</code></dt>
+  <dd>Draws its children on a separate layer, above the 2D scene, and ignores cameras. A <code>Control</code> under it anchors to the edges of the viewport the layer is in. Use it for HUDs and on-screen messages. <span class="see"><a href="https://docs.godotengine.org/en/stable/tutorials/2d/canvas_layers.html">Docs</a></span></dd>
+</dl>
+
 <h2>The frame loop</h2>
 <dl class="glossary">
+  <dt>Pause (<code>get_tree().paused</code>)</dt>
+  <dd>Stops the <code>_process</code>, <code>_physics_process</code> and input callbacks, and physics, of every pausable node. Paused nodes are still drawn, and method calls and signal callbacks on them still run. <span class="see"><a href="https://docs.godotengine.org/en/stable/tutorials/scripting/pausing_games.html">Docs</a></span></dd>
+  <dt><code>process_mode</code></dt>
+  <dd>Whether a node runs when the tree is paused: Inherit (the default: the same as its parent), Pausable, When Paused, Always or Disabled. If a parent is Always, every Inherit child is Always too, so set the branch that should freeze back to Pausable.</dd>
   <dt><code>_physics_process(delta)</code></dt>
   <dd>Runs at a fixed rate (60/s by default) before each physics step. Movement and anything touching bodies goes here.</dd>
   <dt><code>_process(delta)</code></dt>

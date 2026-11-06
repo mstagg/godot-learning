@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lives, Game Over, Level Clear</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+<p class="kicker">Lesson 5 · Breakout clone · about 45 minutes, or two sittings</p>
+<h1>A game with an ending</h1>
+<p class="subtitle">Lives, a game over that freezes the game, and a level clear: game states, pausing, and counting what's left.</p>
+
+<div class="win">
+  <span class="label">Your win</span>
+  <p>Breakout becomes a real game. You get three balls. Losing the last one freezes everything behind GAME OVER until you press a button, and clearing the wall moves you to level 2. You can explain why pausing the root did nothing until you un-paused one branch, and why counting the bricks that are left is harder than it looks.</p>
+</div>
+
+<div class="callout">
+  <span class="label">From last time</span>
+  <p><strong>Delta, third time:</strong> both bodies collide; the paddle stops at the walls. The difference is the argument. <code>move_and_collide(motion)</code> wants a <em>distance</em>, so the ball passes <code>velocity * delta_sec</code>. <code>move_and_slide()</code> reads <code>self.velocity</code>, a <em>speed</em>, and multiplies by delta itself. That's why the paddle's <code>_delta_sec</code> is unused.</p>
+  <p><strong>Nine-patch:</strong> it doesn't interpolate, so no new pixels are invented. The corners stay fixed, and the edges and centre stretch. <code>fit()</code> sizes the patch in <em>art</em> pixels and then scales it ×2, so every art pixel is a 2×2 block, the same as the ball's. With <code>size = target_size</code>, your outline would be half as thick as the ball's pixels.</p>
+  <p><strong>Filter:</strong> under Linear, the 2× art would go soft, and the black outline would smear into the brick colour.</p>
+</div>
+
+<p>Right now a miss resets everything, and the game never ends. This lesson gives it a beginning, a middle and an end. The engine ideas are small, but every game you make from here on needs them: Galaga's waves, Tetris's top-out, a pause menu, and the tactics game's turn phases are all states with an owner.</p>
+
+<h2>Four ideas, in fifteen minutes</h2>
+
+<h3>1. A game state is one variable with one owner</h3>
+<p>You could track this with booleans: <code>is_game_over</code>, <code>is_level_clear</code>. Two booleans give four combinations, and one of them, "game over <em>and</em> level clear", is nonsense that your code must never reach. An <code>enum</code> makes impossible combinations impossible to write:</p>
+<pre><code>enum State { PLAYING, GAME_OVER, LEVEL_CLEAR }
+
+var _state: State = State.PLAYING
+
+
+func _set_state(new_state: State) -&gt; void:
+	self._state = new_state
+	match new_state:
+		State.PLAYING:
+			...
+		State.GAME_OVER:
+			...</code></pre>
+<p>Put every change through one function. Then "what happens when we enter GAME_OVER" lives in one place, not in whichever handler happened to notice. The owner is the game root, <code>game.gd</code>, which already owns the score. Lives move up there too. The play area reports what happened (a ball was lost, the last brick broke), and the root decides what that means. It's call down, signal up again, one level higher.<span class="sidenote"><a href="https://gameprogrammingpatterns.com/state.html">Game Programming Patterns: State</a>. Read up to "Finite State Machines"; the rest is more than Breakout needs.</span></p>
+<p class="muted">The alternative people reach for is an autoload, a global singleton. It's the right tool when state must survive scene changes, which is what the Zelda clone needs. Here everything lives in one scene, so the root is enough.</p>
+
+<h3>2. Pausing: <code>get_tree().paused</code> and <code>process_mode</code></h3>
+<p>Setting <code>get_tree().paused = true</code> stops the <code>_process</code>, <code>_physics_process</code> and input callbacks of every node that is <strong>pausable</strong>, and it freezes physics for them. Each node's <strong>Process → Mode</strong> in the Inspector decides whether it's pausable:<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/scripting/pausing_games.html">Docs: Pausing games and process mode</a>.</span></p>
+<div class="table-wrap">
+<table>
+  <tr><th>Mode</th><th>Runs when…</th></tr>
+  <tr><td>Inherit (default)</td><td>whatever its parent does</td></tr>
+  <tr><td>Pausable</td><td>the tree is not paused</td></tr>
+  <tr><td>When Paused</td><td>the tree <em>is</em> paused (pause menus)</td></tr>
+  <tr><td>Always</td><td>either way</td></tr>
+  <tr><td>Disabled</td><td>never</td></tr>
+</table>
+</div>
+<p>Here's the trap, checked in 4.7.2. Your game root must keep running while paused, because it's the node listening for "press Enter to play again", so you set it to Always. But <strong>every child set to Inherit now inherits Always too</strong>, so pausing does nothing at all. The fix is to set the branch that should freeze, the <code>GameWindow</code> container, back to <strong>Pausable</strong>. Then everything under it, the ball and paddle included, inherits Pausable.</p>
+<p>Pausing doesn't stop everything. Paused nodes are still drawn, so your GAME OVER message can live inside the frozen play area. And <strong>method calls and signal callbacks still run</strong> on a paused node. The root can call <code>show_message()</code> on the play area while it's frozen. That cuts both ways, as one exercise below will show.</p>
+
+<h3>3. Counting what's left, when deletion is late</h3>
+<p>Level clear means "no bricks left". The obvious check is <code>self._bricks.get_child_count() == 0</code> in <code>_on_brick_destroyed</code>. But <code>hit()</code> emits <code>destroyed</code> and <em>then</em> calls <code>queue_free()</code>, and <code>queue_free()</code> doesn't delete until the frame ends. When the last brick reports in, it's still a child, and I confirmed the count is 1, not 0. You'd never detect the level clear.</p>
+<p>There are three ways out. You could skip nodes where <code>is_queued_for_deletion()</code> is true, connect each brick's <code>tree_exited</code> signal, or keep your own counter: set it when the grid is built and decrement it on each <code>destroyed</code>. The counter is the simplest and the easiest to review. Whatever you pick, your spec should name it.</p>
+
+<h3>4. <code>CanvasLayer</code> for messages over the game</h3>
+<p>A <code>CanvasLayer</code> draws its children on a separate layer, above the normal 2D scene, and ignores any camera. A <code>Control</code> under it anchors to the edges of the viewport the layer is in. Inside your SubViewport, that's exactly the play area. So <code>CanvasLayer → CenterContainer</code> (Full Rect) <code>→ Label</code> centres a message over the play area at any window size, with no position maths. Every HUD you build later starts like this.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/2d/canvas_layers.html">Docs: Canvas layers</a>.</span></p>
+<p class="muted">Restarting also needs a new input action. Call it <code>confirm</code>, and bind Enter, Space and the gamepad's bottom face button, which is A on a Steam Deck. A one-off press is an event, so handle it in <code>_unhandled_input(event)</code> with <code>event.is_action_pressed("confirm")</code>.</p>
+
+<h2>Do it</h2>
+<p class="muted">Use <code>/feature-spec</code> for each spec, and write your own before opening each model. The agent builds a whole spec at once; review it as one diff.</p>
+<ol class="steps" data-steps-key="0005">
+  <li>
+    <span class="step-title">Spec 0018: lives.</span>
+    Decide: who owns the lives, how a miss gets from the drain to that owner, what a miss now does to the bricks (this changes 0013's behaviour), and what happens on the last life <em>before</em> there's a game-over screen.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0018 · Lives
+Goal: I get three balls; a miss costs a life instead of rebuilding the wall.
+Behaviour:
+- game.gd owns _lives (@export var starting_lives: int = 3); its setter calls GameStateWindow.set_lives(), like _score_total.
+- New LivesLabel under the score: "Lives 3".
+- The drain no longer calls reset_game. game_window.gd re-emits it, still deferred, as ball_lost.
+- reset_game splits: serve_ball() returns the paddle and ball and serves; build_level() rebuilds the bricks, then serves.
+- With lives left, game.gd calls serve_ball(); broken bricks stay broken.
+- On the last life, for now, it all restarts: lives and score back to start, build_level().
+Done when:
+- "Lives 3" shows at start, and each miss drops it by one, with the broken bricks still gone.
+- After the third miss: Lives 3, score 00000, full wall.
+Not in this spec:
+- A game-over screen or pausing
+- Ball icons instead of a number
+- Extra lives from score
+- Serving from the paddle on a button press</code></pre>
+      <p class="muted">Review questions. Is the drain still connected deferred? If not, <code>build_level()</code> adds bricks mid physics step, the bug you fixed in lesson 2. Does a window resize still call <code>build_level()</code> from inside <code>game_window.gd</code>? And is <code>reset_game</code> gone completely, not left dangling?</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Spec 0019: game over.</span>
+    Decide: the state names, where the message lives, which nodes get which Process Mode, the input action and its bindings, and what a restart resets.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0019 · Game over
+Goal: Losing the last ball freezes the game behind GAME OVER until I press a button to play again.
+Behaviour:
+- game.gd gets enum State { PLAYING, GAME_OVER } and _state; every change goes through _set_state().
+- The play area gets CanvasLayer > CenterContainer (Full Rect) > Label "Message", hidden; game_window.gd has show_message(text) and hide_message().
+- Last life lost: GAME_OVER, get_tree().paused = true, show "GAME OVER\nPress Enter".
+- Process Mode: Game root Always; GameWindow (the SubViewportContainer) Pausable.
+- New input action confirm: Enter, Space, gamepad bottom button. game.gd's _unhandled_input uses it only in GAME_OVER.
+- Confirm: lives and score reset, build_level(), hide_message(), unpause, PLAYING.
+Done when:
+- After the third miss, the ball and paddle freeze and GAME OVER shows centred in the play area.
+- The arrow keys do nothing while it shows; Enter starts over at 00000, Lives 3, full wall.
+- Enter mid-game does nothing.
+Not in this spec:
+- Title screen
+- High scores
+- A pause key during play
+- Animating the message</code></pre>
+      <p class="muted">Review questions. Did the agent set Process Mode on the right two nodes, and on nothing inside the play area? Does <code>_set_state()</code> do the pausing, or is <code>paused = true</code> scattered across handlers? And is 0018's "restart on the last life" code replaced, not left beside the new path?</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Break it on purpose.</span>
+    Set GameWindow's Process Mode back to <strong>Inherit</strong>, play to game over, and watch. Describe what you see and why, using the table in idea 2. Then undo it with <code>git checkout</code>.
+  </li>
+  <li>
+    <span class="step-title">Spec 0020: level clear, with no model.</span>
+    Write this one alone. Decide how the play area knows the last brick went (idea 3), what it tells the root, what the message says, what carries over to level 2 (score? lives? ball speed?), and how <code>LevelLabel</code> stops being hard-coded. Level 2 is the same wall.
+  </li>
+  <li>
+    <span class="step-title">Have the agent stress-test your states.</span>
+    Before implementing 0020, ask: <em>"Make a table with every state in game.gd as rows (PLAYING, GAME_OVER, LEVEL_CLEAR) and every event as columns: ball drained, last brick broken, confirm pressed, window resized. In each cell, say what specs/0020 plus the current code would do, and mark every cell the spec leaves undecided."</em> Decide each marked cell, and put the decision in the spec or under "Not in this spec". Watch the resize column. Signal callbacks run while paused (idea 2).
+  </li>
+  <li>
+    <span class="step-title">Run it and check.</span>
+    Check every "Done when" line in all three specs. Then lower <code>brick_rows</code> and <code>brick_columns</code> to 1 in the Inspector, so a level clear takes seconds to test, and set them back afterwards.
+  </li>
+  <li>
+    <span class="step-title">Take the quiz below, from memory.</span>
+  </li>
+</ol>
+
+<h2>Check yourself</h2>
+<p class="muted">Answer without scrolling up. The first two revisit earlier lessons on purpose.</p>
+<div class="quiz" id="quiz-0005"></div>
+<script type="application/json" data-quiz-for="quiz-0005">
+[
+  {
+    "q": "Why does the ball multiply by <code>delta_sec</code> but the paddle doesn't?",
+    "options": ["Only the ball collides", "move_and_collide takes a distance; move_and_slide reads velocity and applies delta itself", "The paddle's speed is per-frame", "The paddle runs in _process"],
+    "answer": 1,
+    "why": "Both bodies collide; the paddle stops at walls. The difference is the argument: a distance for move_and_collide, a speed (the velocity property) for move_and_slide."
+  },
+  {
+    "q": "PixelNinePatch.fit() sets <code>size = target_size / 2</code> and <code>scale = 2</code>. What goes wrong with just <code>size = target_size</code>?",
+    "options": ["The texture won't load", "The corners stretch", "Art pixels draw 1:1, half the size of the ball's", "The collision shape shrinks"],
+    "answer": 2,
+    "why": "Margins are in texture pixels. Without the 2× scale, a 2-pixel outline is 2 screen pixels, and the bricks look finer than the ball."
+  },
+  {
+    "q": "The Game root's Process Mode is Always, and nothing else was changed. You pause the tree. What does the ball do?",
+    "options": ["Freezes", "Keeps moving", "Disappears", "Freezes but still collides"],
+    "answer": 1,
+    "why": "Every node defaults to Inherit, so the whole tree inherits Always. Set the branch that should freeze (GameWindow) to Pausable."
+  },
+  {
+    "q": "In the last brick's <code>destroyed</code> handler you call <code>self._bricks.get_child_count()</code>. It returns…",
+    "options": ["0", "1", "An error", "−1"],
+    "answer": 1,
+    "why": "hit() emits, then queue_free()s, and queue_free() deletes at frame end. The last brick is still a child when its signal arrives."
+  },
+  {
+    "q": "The tree is paused and the play area is Pausable. The root calls <code>play_area.show_message(\"GAME OVER\")</code>. What happens?",
+    "options": ["Nothing until unpaused", "It runs and the message appears", "It errors", "It's queued until the next frame"],
+    "answer": 1,
+    "why": "Pause stops the per-frame and input callbacks, not method calls or signal callbacks. Paused nodes are still drawn."
+  },
+  {
+    "q": "Why an enum State instead of <code>is_game_over</code> and <code>is_level_clear</code> booleans?",
+    "options": ["Enums are faster", "Booleans can't be exported", "Two booleans allow a nonsense combination; one enum can't", "match only works on enums"],
+    "answer": 2,
+    "why": "Two booleans give four combinations, including 'game over and level clear'. One variable holds exactly one state."
+  },
+  {
+    "q": "Why put the message under a CanvasLayer inside the SubViewport?",
+    "options": ["Labels can't be children of Node2D", "It draws above the game and anchors to the play area's size", "It's the only node that renders while paused", "It makes the label pausable"],
+    "answer": 1,
+    "why": "A Control under a CanvasLayer anchors to its viewport, here the play area, so a CenterContainer centres it at any size, above the 2D scene."
+  }
+]
+</script>
+
+<h2>Go deeper</h2>
+<p><strong>Primary source:</strong> <a href="https://docs.godotengine.org/en/stable/tutorials/scripting/pausing_games.html">Docs: Pausing games and process mode</a> (5 minutes). Then <a href="https://gameprogrammingpatterns.com/state.html">Game Programming Patterns: State</a>, up to and including "Finite State Machines" (10 minutes). The tactics game's turn phases will be this pattern at a larger scale.</p>
+<p>Keep these open: <a href="../reference/glossary.html">Glossary</a> · <a href="../reference/spec-loop.html">Spec loop</a></p>
+
+<div class="callout ask">
+  <span class="label">Ask your teacher</span>
+  <p>Good questions for the chat: "Should the state machine be its own node?" "When would I want an autoload instead?" "Why not use a Timer for a delay before each serve?" That last one is Galaga's lesson, but you can ask early.</p>
+</div>
+
+<nav class="lesson-nav">
+  <a href="0004-palette-first-sprites.html">← Lesson 4: your first sprites</a>
+  <span class="muted">Next: Lesson 6, to be planned. Candidates: sound, or a pixel-art base resolution.</span>
+</nav>
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/steps.js"></script>
+</body>
+</html>
