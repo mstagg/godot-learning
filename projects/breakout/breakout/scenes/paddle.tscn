@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://do2swyx6fg4w8"]
 
 [ext_resource type="Script" uid="uid://blltyse2mmxe7" path="res://scripts/paddle.gd" id="1_paddle"]
+[ext_resource type="Script" uid="uid://yuj0ibjg7a2d" path="res://scripts/pixel_nine_patch.gd" id="2_nine"]
+[ext_resource type="Texture2D" uid="uid://gricp3xy22w3" path="res://assets/paddle.png" id="3_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_paddle"]
 
@@ -11,4 +13,8 @@ script = ExtResource("1_paddle")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1185714978]
 shape = SubResource("RectangleShape2D_paddle")
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=234440829]
+[node name="Art" type="NinePatchRect" parent="." unique_id=234440829]
+texture = ExtResource("3_tex")
+patch_margin_left = 2
+patch_margin_right = 2
+script = ExtResource("2_nine")

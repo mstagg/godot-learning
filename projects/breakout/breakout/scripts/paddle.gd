@@ -9,7 +9,7 @@ extends CharacterBody2D
 @export var speed: float = 800.0
 
 @onready var _shape: CollisionShape2D = $CollisionShape2D
-@onready var _visual: ColorRect = $ColorRect
+@onready var _art: PixelNinePatch = $Art
 
 
 func _ready() -> void:
@@ -30,5 +30,4 @@ func _apply_size() -> void:
 	if not self.is_node_ready():
 		return
 	(self._shape.shape as RectangleShape2D).size = self.size
-	self._visual.size = self.size
-	self._visual.position = -self.size / 2.0
+	self._art.fit(self.size)

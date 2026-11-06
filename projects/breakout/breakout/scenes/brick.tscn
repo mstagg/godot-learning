@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://ck6rjgnlibjpp"]
 
 [ext_resource type="Script" uid="uid://ci7yikioxoyec" path="res://scripts/brick.gd" id="1_brick"]
+[ext_resource type="Script" uid="uid://yuj0ibjg7a2d" path="res://scripts/pixel_nine_patch.gd" id="2_nine"]
+[ext_resource type="Texture2D" uid="uid://dky0pn6mag1mn" path="res://assets/brick.png" id="3_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_brick"]
 resource_local_to_scene = true
@@ -13,8 +15,10 @@ script = ExtResource("1_brick")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1203605993]
 shape = SubResource("RectangleShape2D_brick")
 
-[node name="Border" type="ColorRect" parent="." unique_id=669994545]
-color = Color(0, 0, 0, 1)
-
-[node name="Fill" type="ColorRect" parent="." unique_id=1568138078]
-color = Color(1, 1, 0, 1)
+[node name="Art" type="NinePatchRect" parent="." unique_id=669994545]
+texture = ExtResource("3_tex")
+patch_margin_left = 2
+patch_margin_top = 2
+patch_margin_right = 2
+patch_margin_bottom = 2
+script = ExtResource("2_nine")
