@@ -72,11 +72,11 @@ func _set_state(new_state: State) -&gt; void:
 <p class="muted">Use <code>/feature-spec</code> for each spec, and write your own before opening each model. The agent builds a whole spec at once; review it as one diff.</p>
 <ol class="steps" data-steps-key="0005">
   <li>
-    <span class="step-title">Spec 0020: lives.</span>
+    <span class="step-title">Spec 0021: lives.</span>
     Decide: who owns the lives, how a miss gets from the drain to that owner, what a miss now does to the bricks (this changes 0013's behaviour), and what happens on the last life <em>before</em> there's a game-over screen.
     <details>
       <summary>Model spec (open after writing yours)</summary>
-<pre><code># 0020 · Lives
+<pre><code># 0021 · Lives
 Goal: I get three balls; a miss costs a life instead of rebuilding the wall.
 Behaviour:
 - game.gd owns _lives (@export var starting_lives: int = 3); its setter calls GameStateWindow.set_lives(), like _score_total.
@@ -96,11 +96,11 @@ Not in this spec:
     </details>
   </li>
   <li>
-    <span class="step-title">Spec 0021: game over.</span>
+    <span class="step-title">Spec 0022: game over.</span>
     Decide: the state names, where the message lives, which nodes get which Process Mode, the input action and its bindings, and what a restart resets.
     <details>
       <summary>Model spec (open after writing yours)</summary>
-<pre><code># 0021 · Game over
+<pre><code># 0022 · Game over
 Goal: Losing the last ball freezes the game behind GAME OVER until I press a button to play again.
 Behaviour:
 - game.gd gets enum State { PLAYING, GAME_OVER } and _state; every change goes through _set_state().
@@ -118,7 +118,7 @@ Not in this spec:
 - High scores
 - A pause key during play
 - Animating the message</code></pre>
-      <p class="muted">Review questions. Did the agent set Process Mode on the right two nodes, and on nothing inside the play area? Does <code>_set_state()</code> do the pausing, or is <code>paused = true</code> scattered across handlers? And is 0020's "restart on the last life" code replaced, not left beside the new path? Last, Space is now bound to both <code>confirm</code> and your <code>launch</code>: does one press at GAME OVER restart the game <em>and</em> launch the ball? Try it, and decide whether that's a bug.</p>
+      <p class="muted">Review questions. Did the agent set Process Mode on the right two nodes, and on nothing inside the play area? Does <code>_set_state()</code> do the pausing, or is <code>paused = true</code> scattered across handlers? And is 0021's "restart on the last life" code replaced, not left beside the new path? Last, Space is now bound to both <code>confirm</code> and your <code>launch</code>: does one press at GAME OVER restart the game <em>and</em> launch the ball? Try it, and decide whether that's a bug.</p>
     </details>
   </li>
   <li>
@@ -126,12 +126,12 @@ Not in this spec:
     Set GameWindow's Process Mode back to <strong>Inherit</strong>, play to game over, and watch. Describe what you see and why, using the table in idea 2. Then undo it with <code>git checkout</code>.
   </li>
   <li>
-    <span class="step-title">Spec 0022: level clear, with no model.</span>
+    <span class="step-title">Spec 0023: level clear, with no model.</span>
     Write this one alone. Decide how the play area knows the last brick went (idea 3), what it tells the root, what the message says, what carries over to level 2 (score? lives? ball speed?), and how <code>LevelLabel</code> stops being hard-coded. Level 2 is the same wall.
   </li>
   <li>
     <span class="step-title">Have the agent stress-test your states.</span>
-    Before implementing 0022, ask: <em>"Make a table with every state in game.gd as rows (PLAYING, GAME_OVER, LEVEL_CLEAR) and every event as columns: ball drained, last brick broken, confirm pressed, window resized. In each cell, say what specs/0022 plus the current code would do, and mark every cell the spec leaves undecided."</em> Decide each marked cell, and put the decision in the spec or under "Not in this spec". Watch the resize column. Signal callbacks run while paused (idea 2).
+    Before implementing 0023, ask: <em>"Make a table with every state in game.gd as rows (PLAYING, GAME_OVER, LEVEL_CLEAR) and every event as columns: ball drained, last brick broken, confirm pressed, window resized. In each cell, say what specs/0023 plus the current code would do, and mark every cell the spec leaves undecided."</em> Decide each marked cell, and put the decision in the spec or under "Not in this spec". Watch the resize column. Signal callbacks run while paused (idea 2).
   </li>
   <li>
     <span class="step-title">Run it and check.</span>
