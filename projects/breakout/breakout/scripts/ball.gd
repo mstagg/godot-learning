@@ -17,11 +17,15 @@ func _ready() -> void:
 	self._apply_radius()
 
 
-func serve() -> void:
-	# Down at 45°, left or right on a coin flip (randf() is 0 to 1).
-	var x: float = -1.0 if randf() < 0.5 else 1.0
+func pause_physics() -> void:
+	# Stops _physics_process, so the ball never calls move_and_collide; something else must move it.
+	self.set_physics_process(false)
+
+
+func launch(direction: Vector2) -> void:
 	# normalized() makes the direction length 1, so speed sets the length.
-	self.velocity = Vector2(x, 1.0).normalized() * self.speed
+	self.velocity = direction.normalized() * self.speed
+	self.set_physics_process(true)
 
 
 func _physics_process(delta_sec: float) -> void:

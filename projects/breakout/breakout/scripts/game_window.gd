@@ -13,7 +13,7 @@ const BRICK_SCENE: PackedScene = preload("res://scenes/brick.tscn")
 @export var brick_height: float = 24.0
 @export var grid_top_margin: float = 48.0
 
-@onready var _paddle: Node2D = $Paddle
+@onready var _paddle: Paddle = $Paddle
 @onready var _wall_left: StaticBody2D = $WallLeft
 @onready var _wall_right: StaticBody2D = $WallRight
 @onready var _wall_top: StaticBody2D = $WallTop
@@ -40,8 +40,7 @@ func _on_viewport_size_changed() -> void:
 func reset_game() -> void:
 	var screen_size: Vector2 = self.get_viewport_rect().size
 	self._paddle.position = Vector2(screen_size.x / 2.0, screen_size.y - self.paddle_bottom_margin)
-	self._ball.position = screen_size / 2.0
-	self._ball.serve()
+	self._paddle.hold_ball(self._ball)
 	self._build_bricks(screen_size)
 
 
