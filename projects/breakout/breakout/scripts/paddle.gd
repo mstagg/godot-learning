@@ -7,6 +7,10 @@ extends CharacterBody2D
 		size = value
 		self._apply_size()
 @export var speed: float = 800.0
+# How much a full-speed paddle bends the ball: sideways units added per unit of direction. 0 = pure mirror bounce.
+@export var paddle_influence: float = 0.5
+# The furthest the ball may lean away from the surface it left (straight up, for the top face).
+@export var max_angle_deg: float = 60.0
 
 # The ball sitting on the paddle, or null when it's in play.
 var _held_ball: Ball = null
@@ -31,8 +35,21 @@ func _physics_process(_delta_sec: float) -> void:
 		# After the clamp, so the ball follows where the paddle really ended up.
 		self._place_held_ball()
 		if Input.is_action_just_pressed("launch"):
-			self._held_ball.launch(Vector2.UP)
+			# Launching acts like a hit on the top face: start straight up, facing straight up.
+			self._held_ball.launch(self.aim(Vector2.UP, Vector2.UP))
 			self._held_ball = null
+
+
+# ball_direction: where the ball would go without the paddle's push (only its direction matters).
+# surface_normal: the direction the hit surface faces (straight up for the paddle's top).
+func aim(ball_direction: Vector2, surface_normal: Vector2) -> Vector2:
+	# Real velocity, not the requested one: pushing against a wall measures 0, so it adds nothing.
+	var push: Vector2 = self.get_real_velocity() / self.speed * self.paddle_influence
+	var aimed: Vector2 = (ball_direction.normalized() + push).normalized()
+	# Keep it inside a fan of max_angle_deg either side of the direction the hit surface faces.
+	var max_angle: float = deg_to_rad(self.max_angle_deg)
+	var angle: float = clampf(surface_normal.angle_to(aimed), -max_angle, max_angle)
+	return surface_normal.rotated(angle)
 
 
 func hold_ball(ball: Ball) -> void:

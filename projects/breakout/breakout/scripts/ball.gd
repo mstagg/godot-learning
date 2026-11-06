@@ -36,10 +36,11 @@ func _physics_process(delta_sec: float) -> void:
 		var brick: Brick = collision.get_collider() as Brick
 		if brick:
 			brick.hit()
-		if collision.get_collider() is Paddle:
-			# Same direction, a little faster, never past max_speed.
+		var paddle: Paddle = collision.get_collider() as Paddle
+		if paddle:
+			# The paddle bends the bounce, then the ball gets a little faster, never past max_speed.
 			var new_speed: float = minf(self.velocity.length() + self.speed_increase, self.max_speed)
-			self.velocity = self.velocity.normalized() * new_speed
+			self.velocity = paddle.aim(self.velocity, collision.get_normal()) * new_speed
 
 
 func _apply_radius() -> void:
