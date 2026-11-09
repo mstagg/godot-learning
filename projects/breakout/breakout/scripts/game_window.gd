@@ -50,6 +50,10 @@ func reset_ball_and_paddle() -> void:
 	self._paddle.hold_ball(self._ball)
 
 
+func launch_ball() -> void:
+	self._paddle.launch_held_ball()
+
+
 func _place_walls(screen_size: Vector2) -> void:
 	# Walls sit just outside the screen, so their inner faces are exactly on the screen edges.
 	var half: float = self.wall_thickness / 2.0

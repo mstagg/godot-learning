@@ -13,6 +13,7 @@ var _score_total: int = 0:
 		# The setter can run before the child nodes exist (while the scene loads).
 		if self.is_node_ready():
 			self._game_state_window.set_score(_score_total)
+			self._game_over_overlay.set_score(_score_total)
 var _lives: int = 0:
 	set(value):
 		_lives = value
@@ -28,6 +29,7 @@ var _level: int = 1:
 
 @onready var _play_area: GameWindow = $GameWindow/SubViewport/PlayArea
 @onready var _game_state_window: GameStateWindow = $GameStateWindow
+@onready var _game_over_overlay: GameOverOverlay = $GameOverOverlay
 
 
 func _ready() -> void:
@@ -49,6 +51,21 @@ func reset_game() -> void:
 
 func _set_state(new_state: State) -> void:
 	self._state = new_state
+	var is_game_over: bool = new_state == State.GAME_OVER
+	self.get_tree().paused = is_game_over
+	self._game_over_overlay.visible = is_game_over
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# The only place launch is read: the state decides what the press means, so one press does one thing.
+	if not event.is_action_pressed("launch"):
+		return
+	match self._state:
+		State.GAME_OVER:
+			self.reset_game()
+			self._set_state(State.PLAYING)
+		State.PLAYING:
+			self._play_area.launch_ball()
 
 
 func _on_points_scored(points: int) -> void:
@@ -61,5 +78,3 @@ func _on_ball_lost() -> void:
 		self._play_area.reset_ball_and_paddle()
 	else:
 		self._set_state(State.GAME_OVER)
-		self.reset_game()
-		self._set_state(State.PLAYING)

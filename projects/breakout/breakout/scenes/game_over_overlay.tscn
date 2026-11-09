@@ -1,10 +1,13 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://scripts/game_over_overlay.gd" id="1_overlay"]
+
 [sub_resource type="FontVariation" id="FontVariation_title"]
 variation_embolden = 1.0
 
 [node name="GameOverOverlay" type="CanvasLayer"]
 visible = false
+script = ExtResource("1_overlay")
 
 [node name="Dim" type="ColorRect" parent="."]
 anchors_preset = 15

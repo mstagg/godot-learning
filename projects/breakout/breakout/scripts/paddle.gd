@@ -34,10 +34,15 @@ func _physics_process(_delta_sec: float) -> void:
 	if self._held_ball:
 		# After the clamp, so the ball follows where the paddle really ended up.
 		self._place_held_ball()
-		if Input.is_action_just_pressed("launch"):
-			# Launching acts like a hit on the top face: start straight up, facing straight up.
-			self._held_ball.launch(self.aim(Vector2.UP, Vector2.UP))
-			self._held_ball = null
+
+
+# Does nothing when the ball is already in play, so callers needn't check.
+func launch_held_ball() -> void:
+	if not self._held_ball:
+		return
+	# Launching acts like a hit on the top face: start straight up, facing straight up.
+	self._held_ball.launch(self.aim(Vector2.UP, Vector2.UP))
+	self._held_ball = null
 
 
 # ball_direction: where the ball would go without the paddle's push (only its direction matters).
