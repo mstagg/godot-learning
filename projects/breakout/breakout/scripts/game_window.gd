@@ -9,8 +9,11 @@ const BRICK_SCENE: PackedScene = preload("res://scenes/brick.tscn")
 @export var paddle_bottom_margin: float = 40.0
 @export var wall_thickness: float = 10.0
 @export var drain_height: float = 10.0
-@export var brick_rows: int = 3
-@export var brick_columns: int = 12
+# One string per row: X = brick, . = gap. Columns come from the string length.
+@export var layout: PackedStringArray = [
+	".XXX.XXX.XXX.",
+	".XXX.XXX.XXX.",
+]
 @export var brick_height: float = 24.0
 @export var grid_top_margin: float = 48.0
 
@@ -76,9 +79,11 @@ func _build_bricks(screen_size: Vector2) -> void:
 	for old_brick: Node in self._bricks.get_children():
 		old_brick.queue_free()
 
-	var brick_size: Vector2 = Vector2(screen_size.x / self.brick_columns, self.brick_height)
-	for row: int in self.brick_rows:
-		for column: int in self.brick_columns:
+	var brick_size: Vector2 = Vector2(screen_size.x / self.layout[0].length(), self.brick_height)
+	for row: int in self.layout.size():
+		for column: int in self.layout[row].length():
+			if self.layout[row][column] != "X":
+				continue
 			var brick: Brick = BRICK_SCENE.instantiate()
 			brick.size = brick_size
 			# Positions are centres: the brick's top-left corner plus half a brick.
