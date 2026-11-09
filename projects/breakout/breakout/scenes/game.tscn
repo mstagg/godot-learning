@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="0_game"]
 [ext_resource type="PackedScene" path="res://scenes/game_window.tscn" id="1_window"]
 [ext_resource type="PackedScene" path="res://scenes/game_state_window.tscn" id="2_state"]
 [ext_resource type="PackedScene" path="res://scenes/game_over_overlay.tscn" id="3_overlay"]
+[ext_resource type="PackedScene" path="res://scenes/levels/level_1.tscn" id="4_level1"]
+[ext_resource type="PackedScene" path="res://scenes/levels/level_2.tscn" id="5_level2"]
 
 [node name="Game" type="HBoxContainer"]
 anchors_preset = 15
@@ -14,6 +16,7 @@ grow_vertical = 2
 theme_override_constants/separation = 0
 process_mode = 3
 script = ExtResource("0_game")
+levels = Array[PackedScene]([ExtResource("4_level1"), ExtResource("5_level2")])
 
 [node name="GameWindow" type="SubViewportContainer" parent="."]
 process_mode = 1

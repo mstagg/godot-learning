@@ -1,0 +1,79 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/level.gd" id="1_6iamk"]
+[ext_resource type="PackedScene" path="res://scenes/brick.tscn" id="2_nsrm0"]
+
+[node name="Level1" type="Node2D" unique_id=271184637]
+script = ExtResource("1_6iamk")
+
+[node name="Brick01" parent="." unique_id=347586546 instance=ExtResource("2_nsrm0")]
+position = Vector2(136, 60)
+size = Vector2(88, 24)
+
+[node name="Brick02" parent="." unique_id=364275429 instance=ExtResource("2_nsrm0")]
+position = Vector2(224, 60)
+size = Vector2(88, 24)
+
+[node name="Brick03" parent="." unique_id=1807077241 instance=ExtResource("2_nsrm0")]
+position = Vector2(312, 60)
+size = Vector2(88, 24)
+
+[node name="Brick04" parent="." unique_id=155122967 instance=ExtResource("2_nsrm0")]
+position = Vector2(488, 60)
+size = Vector2(88, 24)
+
+[node name="Brick05" parent="." unique_id=1743923350 instance=ExtResource("2_nsrm0")]
+position = Vector2(576, 60)
+size = Vector2(88, 24)
+
+[node name="Brick06" parent="." unique_id=921285314 instance=ExtResource("2_nsrm0")]
+position = Vector2(664, 60)
+size = Vector2(88, 24)
+
+[node name="Brick07" parent="." unique_id=140575045 instance=ExtResource("2_nsrm0")]
+position = Vector2(840, 60)
+size = Vector2(88, 24)
+
+[node name="Brick08" parent="." unique_id=790396460 instance=ExtResource("2_nsrm0")]
+position = Vector2(928, 60)
+size = Vector2(88, 24)
+
+[node name="Brick09" parent="." unique_id=3153949 instance=ExtResource("2_nsrm0")]
+position = Vector2(1016, 60)
+size = Vector2(88, 24)
+
+[node name="Brick10" parent="." unique_id=1726998800 instance=ExtResource("2_nsrm0")]
+position = Vector2(136, 84)
+size = Vector2(88, 24)
+
+[node name="Brick11" parent="." unique_id=29142734 instance=ExtResource("2_nsrm0")]
+position = Vector2(224, 84)
+size = Vector2(88, 24)
+
+[node name="Brick12" parent="." unique_id=1055084491 instance=ExtResource("2_nsrm0")]
+position = Vector2(312, 84)
+size = Vector2(88, 24)
+
+[node name="Brick13" parent="." unique_id=365652233 instance=ExtResource("2_nsrm0")]
+position = Vector2(488, 84)
+size = Vector2(88, 24)
+
+[node name="Brick14" parent="." unique_id=110922343 instance=ExtResource("2_nsrm0")]
+position = Vector2(576, 84)
+size = Vector2(88, 24)
+
+[node name="Brick15" parent="." unique_id=330962866 instance=ExtResource("2_nsrm0")]
+position = Vector2(664, 84)
+size = Vector2(88, 24)
+
+[node name="Brick16" parent="." unique_id=1928970276 instance=ExtResource("2_nsrm0")]
+position = Vector2(840, 84)
+size = Vector2(88, 24)
+
+[node name="Brick17" parent="." unique_id=1585439056 instance=ExtResource("2_nsrm0")]
+position = Vector2(928, 84)
+size = Vector2(88, 24)
+
+[node name="Brick18" parent="." unique_id=2098177955 instance=ExtResource("2_nsrm0")]
+position = Vector2(1016, 84)
+size = Vector2(88, 24)

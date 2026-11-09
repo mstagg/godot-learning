@@ -5,6 +5,8 @@ enum State { PLAYING, GAME_OVER }
 # Spare balls: the one in play isn't counted, so 2 means three balls in total.
 @export var starting_lives: int = 2
 @export var starting_level: int = 1
+# The level scenes in play order; past the last one they wrap round to the first.
+@export var levels: Array[PackedScene] = []
 
 var _state: State = State.PLAYING
 var _score_total: int = 0:
@@ -35,18 +37,18 @@ var _level: int = 1:
 func _ready() -> void:
 	self._play_area.points_scored.connect(self._on_points_scored)
 	self._play_area.ball_lost.connect(self._on_ball_lost)
-	# Assigning through the setters shows the starting values in the column.
-	# Not reset_game(): the play area builds its own first wall once its real size arrives.
-	self._score_total = 0
-	self._lives = self.starting_lives
-	self._level = self.starting_level
+	self._play_area.level_cleared.connect(self._on_level_cleared)
+	# Fine before the play area knows its real size: level scenes place their own bricks,
+	# and the play area re-centres the paddle once the size arrives.
+	self.reset_game()
 
 
 func reset_game() -> void:
+	# Assigning through the setters shows the values in the column.
 	self._score_total = 0
 	self._lives = self.starting_lives
 	self._level = self.starting_level
-	self._play_area.build_level()
+	self._load_current_level()
 
 
 func _set_state(new_state: State) -> void:
@@ -72,9 +74,20 @@ func _on_points_scored(points: int) -> void:
 	self._score_total += points
 
 
+func _on_level_cleared() -> void:
+	# Score and lives carry over.
+	self._level += 1
+	self._load_current_level()
+
+
 func _on_ball_lost() -> void:
 	if self._lives > 0:
 		self._lives -= 1
 		self._play_area.reset_ball_and_paddle()
 	else:
 		self._set_state(State.GAME_OVER)
+
+
+func _load_current_level() -> void:
+	# Wrap past the last scene: level 3 is level 1's wall again, while the label keeps counting.
+	self._play_area.load_level(self.levels[(self._level - 1) % self.levels.size()])
