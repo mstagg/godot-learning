@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="0_game"]
 [ext_resource type="PackedScene" path="res://scenes/game_window.tscn" id="1_window"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/game_over_overlay.tscn" id="3_overlay"]
 [ext_resource type="PackedScene" path="res://scenes/levels/level_1.tscn" id="4_level1"]
 [ext_resource type="PackedScene" path="res://scenes/levels/level_2.tscn" id="5_level2"]
+[ext_resource type="PackedScene" path="res://scenes/win_overlay.tscn" id="6_win"]
 
 [node name="Game" type="HBoxContainer"]
 anchors_preset = 15
@@ -38,3 +39,5 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="GameOverOverlay" parent="." instance=ExtResource("3_overlay")]
+
+[node name="WinOverlay" parent="." instance=ExtResource("6_win")]

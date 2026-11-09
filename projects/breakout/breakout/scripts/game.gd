@@ -1,11 +1,11 @@
 extends HBoxContainer
 
-enum State { PLAYING, GAME_OVER }
+enum State { PLAYING, GAME_OVER, WON }
 
 # Spare balls: the one in play isn't counted, so 2 means three balls in total.
 @export var starting_lives: int = 2
 @export var starting_level: int = 1
-# The level scenes in play order; past the last one they wrap round to the first.
+# The level scenes in play order; clearing the last one wins the game.
 @export var levels: Array[PackedScene] = []
 
 var _state: State = State.PLAYING
@@ -16,6 +16,7 @@ var _score_total: int = 0:
 		if self.is_node_ready():
 			self._game_state_window.set_score(_score_total)
 			self._game_over_overlay.set_score(_score_total)
+			self._win_overlay.set_score(_score_total)
 var _lives: int = 0:
 	set(value):
 		_lives = value
@@ -32,6 +33,7 @@ var _level: int = 1:
 @onready var _play_area: GameWindow = $GameWindow/SubViewport/PlayArea
 @onready var _game_state_window: GameStateWindow = $GameStateWindow
 @onready var _game_over_overlay: GameOverOverlay = $GameOverOverlay
+@onready var _win_overlay: WinOverlay = $WinOverlay
 
 
 func _ready() -> void:
@@ -53,9 +55,9 @@ func reset_game() -> void:
 
 func _set_state(new_state: State) -> void:
 	self._state = new_state
-	var is_game_over: bool = new_state == State.GAME_OVER
-	self.get_tree().paused = is_game_over
-	self._game_over_overlay.visible = is_game_over
+	self.get_tree().paused = new_state != State.PLAYING
+	self._game_over_overlay.visible = new_state == State.GAME_OVER
+	self._win_overlay.visible = new_state == State.WON
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -63,7 +65,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("launch"):
 		return
 	match self._state:
-		State.GAME_OVER:
+		State.GAME_OVER, State.WON:
 			self.reset_game()
 			self._set_state(State.PLAYING)
 		State.PLAYING:
@@ -75,6 +77,9 @@ func _on_points_scored(points: int) -> void:
 
 
 func _on_level_cleared() -> void:
+	if self._level == self.levels.size():
+		self._set_state(State.WON)
+		return
 	# Score and lives carry over.
 	self._level += 1
 	self._load_current_level()
@@ -89,5 +94,4 @@ func _on_ball_lost() -> void:
 
 
 func _load_current_level() -> void:
-	# Wrap past the last scene: level 3 is level 1's wall again, while the label keeps counting.
-	self._play_area.load_level(self.levels[(self._level - 1) % self.levels.size()])
+	self._play_area.load_level(self.levels[self._level - 1])
