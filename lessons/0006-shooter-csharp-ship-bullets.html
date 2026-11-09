@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A ship that shoots, in C#</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+<p class="kicker">Lesson 6 · Fixed shooter, part 1 · about 60 minutes, or two sittings (setup, then specs)</p>
+<h1>A ship that shoots, in C#</h1>
+<p class="subtitle">A new project in C#, a pixel-art base resolution from the first minute, and bullets spawned at runtime: scripts in C#, integer scaling, instancing from code, and Timers.</p>
+
+<div class="win">
+  <span class="label">Your win</span>
+  <p>A new game is running: a crisp pixel-art ship at the bottom of a 320×200 world, scaled ×4 to fill the Steam Deck's 1280×800, sliding left and right and firing a stream of bullets that fly straight however the ship moves. You can read and review Godot C#, say why <code>Position.X = 10</code> won't compile, and explain where a spawned bullet belongs in the tree.</p>
+</div>
+
+<div class="callout">
+  <span class="label">From last time</span>
+  <p><strong>CanvasLayer:</strong> it draws by its <code>layer</code> number (default 1, above the normal canvas at 0), not by its place in the tree. Tree order only decides draw order <em>within</em> one layer, where later siblings draw on top.</p>
+  <p><strong>Frames:</strong> a frame is never drawn in the middle of a function. <code>_on_ball_lost</code> set GAME_OVER and back to PLAYING in one call, so no frame ever showed GAME_OVER. A state has to <em>persist</em> until a later event changes it.</p>
+  <p><strong>Input bleed:</strong> one Space press fired both <code>confirm</code> and <code>launch</code>. The Game heard it as an event, the paddle by polling <code>is_action_just_pressed</code>, and pausing doesn't swallow a press. You fixed the root cause: one owner reads the key, and the state decides what it means.</p>
+  <p><strong>Inspector values:</strong> a value set in the Inspector is saved in the <code>.tscn</code> and replaces the script's default before <code>_ready</code> runs. That's where <code>levels</code> and <code>starting_level</code> live.</p>
+</div>
+
+<p>Breakout is done. This project is a fixed shooter in the Galaga and Space Invaders mould: your ship along the bottom, waves of enemies above. Make it your own: your name, your ship, your enemies. It's chosen for what it forces you to learn: scenes spawned at runtime, timers, groups, sprite animation, sound and game states at a bigger scale. It's also your C# trial. You'll decide at the end of the project whether to keep C#.</p>
+
+<h2>Part A: set up (about 20 minutes)</h2>
+<ol class="steps" data-steps-key="0006a">
+  <li>
+    <span class="step-title">Install the .NET SDK.</span>
+    In a terminal: <code>winget install Microsoft.DotNet.SDK.8</code>, or the newer SDK that the Godot download page names. Check with <code>dotnet --version</code> in a <em>new</em> terminal.
+  </li>
+  <li>
+    <span class="step-title">Download Godot 4.7.2 .NET.</span>
+    From godotengine.org, take the <strong>.NET</strong> build for Windows, not the standard one you used for Breakout. Unzip it next to the other one. The two can live side by side, and Breakout keeps using the standard build.
+  </li>
+  <li>
+    <span class="step-title">Create the project.</span>
+    Pick your game's name. Create it in <code>projects/&lt;name&gt;/</code>, with the Forward+ renderer. Create one throwaway C# script in the editor (any node, <em>Attach Script</em>, language C#). That makes Godot generate the <code>.csproj</code> and <code>.sln</code>. Delete the script afterwards.
+  </li>
+  <li>
+    <span class="step-title">Point Godot at VS Code.</span>
+    Install the <strong>C# Dev Kit</strong> extension in VS Code. In Godot, go to <em>Editor Settings → Dotnet → Editor → External Editor</em> and choose Visual Studio Code. Double-clicking a script now opens it with IntelliSense.
+  </li>
+  <li>
+    <span class="step-title">Set the base resolution (idea 2).</span>
+    In <em>Project Settings</em>, turn on <em>Advanced Settings</em>, then:
+    <ul>
+      <li><strong>Display → Window → Size:</strong> Viewport Width <code>320</code>, Viewport Height <code>200</code>, Window Width Override <code>1280</code>, Window Height Override <code>800</code>.</li>
+      <li><strong>Display → Window → Stretch:</strong> Mode <code>viewport</code>, Aspect <code>keep</code>, Scale Mode <code>integer</code>.</li>
+      <li><strong>Rendering → Textures → Canvas Textures:</strong> Default Texture Filter <code>Nearest</code>.</li>
+    </ul>
+  </li>
+  <li>
+    <span class="step-title">Tell the agent "project created".</span>
+    It writes the project's <code>CLAUDE.md</code> with C# conventions (idea 1), a <code>dotnet build</code> step in Verify, and a <code>specs/</code> folder with the same template as Breakout's. Spec numbers start again at 0001.
+  </li>
+</ol>
+
+<h2>Four ideas, in fifteen minutes</h2>
+
+<h3>1. Godot in C#: the same engine, different spelling</h3>
+<p>Every node, signal and property you know is still there. Only the binding changes. Coming from TypeScript, most of it reads naturally:<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_basics.html">Docs: C# basics</a>, and <a href="https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_differences.html">C# API differences to GDScript</a>, the page to keep open.</span></p>
+<pre><code>using Godot;
+
+public partial class Ship : CharacterBody2D
+{
+	[Export] public float Speed { get; set; } = 120f;
+
+	public override void _PhysicsProcess(double delta)
+	{
+		float direction = Input.GetAxis("move_left", "move_right");
+		Velocity = new Vector2(direction * Speed, 0f);
+		MoveAndSlide();
+	}
+}</code></pre>
+<div class="table-wrap">
+<table>
+  <tr><th>GDScript</th><th>C#</th><th>Note</th></tr>
+  <tr><td><code>extends CharacterBody2D</code></td><td><code>public partial class Ship : CharacterBody2D</code></td><td>The class name must match the file name, <code>Ship.cs</code>. <code>partial</code> is required, because Godot generates the other half.</td></tr>
+  <tr><td><code>@export var speed := 120.0</code></td><td><code>[Export] public float Speed { get; set; } = 120f;</code></td><td>An attribute, like a TypeScript decorator.</td></tr>
+  <tr><td><code>func _ready()</code></td><td><code>public override void _Ready()</code></td><td>Engine callbacks keep their underscore; everything else is PascalCase: <code>MoveAndSlide()</code>, <code>QueueFree()</code>.</td></tr>
+  <tr><td><code>delta: float</code></td><td><code>double delta</code></td><td>Delta is a <code>double</code>, and positions are <code>float</code>s, so you'll write <code>(float)delta</code>.</td></tr>
+  <tr><td><code>$Cooldown</code></td><td><code>GetNode&lt;Timer&gt;("Cooldown")</code></td><td>Typed by a generic, like <code>querySelector&lt;T&gt;</code>.</td></tr>
+  <tr><td><code>signal shoot(at)</code></td><td><code>[Signal] public delegate void ShootEventHandler(Vector2 at);</code></td><td>Emit with <code>EmitSignal(SignalName.Shoot, pos)</code>, connect with <code>ship.Shoot += OnShoot;</code>. The name must end in <code>EventHandler</code>.</td></tr>
+</table>
+</div>
+<p>One trap catches everyone: <strong><code>Position.X = 10;</code> doesn't compile</strong> (error CS1612). <code>Vector2</code> is a <code>struct</code>, a value type, and <code>Position</code> is a property, so <code>Position</code> hands you a <em>copy</em>. Setting <code>.X</code> on the copy would be silently lost, so C# refuses. Assign a whole vector: <code>Position = new Vector2(10, Position.Y);</code> or <code>Position = Position with { X = 10 };</code>.</p>
+<p class="muted">C# is compiled. Godot builds the project when you press Play, and errors appear in the editor's <em>MSBuild</em> panel, not the Output panel. After the agent edits a script, the editor needs a rebuild (the hammer icon, or just Play) before the Inspector shows new exports. The <code>self.</code> rule from Breakout becomes <code>this.</code> only if you want it: decide when the agent writes <code>CLAUDE.md</code>.</p>
+
+<h3>2. A base resolution, scaled by whole numbers</h3>
+<p>In Breakout the world was 1280×800, and every sprite needed scaling by 2 (<code>ART_SCALE</code>, nine-patch maths). This time the whole game lives in a <strong>320×200</strong> world, and Godot scales the finished picture up. <strong>Viewport</strong> stretch mode renders the game at 320×200 and then enlarges the image, so a pixel can never be half a pixel. <strong>Integer</strong> scale mode only ever enlarges by whole numbers. 320×200 is exactly ¼ of the Steam Deck's 1280×800, so there it's ×4 with no borders. A 1920×1080 monitor gets ×5 (1600×1000) with thin black bars, which is exactly what you want for crisp pixels.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html">Docs: Multiple resolutions</a>. Read the "Stretch mode" and "Stretch scale mode" sections.</span></p>
+<p>What this means for you: <strong>draw art at 1:1</strong>. A 16×16 ship in Aseprite is a 16×16 ship in the game, positions are in world pixels (the ship sits around y 184), and there's no scale factor anywhere in code.</p>
+
+<h3>3. Spawning scenes from code, and where they live</h3>
+<p>Breakout already instanced bricks from code. Bullets add one decision: <strong>which parent</strong>. A child inherits its parent's transform, so a bullet added as a child of the ship slides sideways whenever the ship does. Spawned things belong under a node that doesn't move, a <code>Bullets</code> Node2D in the main scene.</p>
+<p>That raises the old question: the ship shouldn't reach up the tree to find <code>Bullets</code>. Signals up, calls down. The ship emits <code>Shoot(at)</code> with its nose position, and the main scene, which owns <code>Bullets</code>, instances the bullet:</p>
+<pre><code>private void OnShipShoot(Vector2 at)
+{
+	var bullet = BulletScene.Instantiate&lt;Bullet&gt;();
+	bullet.Position = at;
+	_bullets.AddChild(bullet);
+}</code></pre>
+<p class="muted">Bullets that leave the screen must free themselves, or they fly up forever and pile up. A <code>VisibleOnScreenNotifier2D</code> child emits <code>ScreenExited</code> when the bullet's rectangle leaves the view; connect it to <code>QueueFree()</code>.</p>
+
+<h3>4. Timers: "not again until…"</h3>
+<p>A fire rate is a cooldown, and a <code>Timer</code> node is a cooldown you don't have to count. Set <strong>Wait Time</strong> to 0.25 and <strong>One Shot</strong> on, then: if fire is held and <code>_cooldown.IsStopped()</code>, shoot and call <code>_cooldown.Start()</code>. That's at most four shots a second, however fast you press. A Timer counts in the background and emits <code>Timeout</code> when it's done. Here you only ask whether it's still running.<span class="sidenote"><a href="https://docs.godotengine.org/en/stable/classes/class_timer.html">Docs: Timer</a>.</span></p>
+<p class="muted">Holding fire is polled (<code>Input.IsActionPressed</code>) on purpose. Unlike Breakout's launch, a held button <em>should</em> keep firing. Polling suits "while held", events suit "once per press".</p>
+
+<h2>Do it</h2>
+<p class="muted">Use <code>/feature-spec</code> for each spec, and write your own before opening each model. The agent builds a whole spec at once; review it as one diff. The specs are in C# now: review it the way you'd review TypeScript, and ask about any line you can't read.</p>
+<ol class="steps" data-steps-key="0006b">
+  <li>
+    <span class="step-title">Optional: draw your ship.</span>
+    A 16×16 sprite in Aseprite, at 1:1, saved to <code>art/</code> and exported to <code>assets/</code> as in Breakout. A plain rectangle is fine for now; sprite animation frames get their own lesson.
+  </li>
+  <li>
+    <span class="step-title">Spec 0001: the ship moves.</span>
+    Decide: the node type and why, where the ship sits in the 320×200 world, its speed in world pixels per second, the input actions and their bindings, and how it stays on screen.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0001 · Ship moves
+Goal: My ship sits at the bottom of the screen and slides left and right, stopping at the edges.
+Behaviour:
+- Main scene main.tscn (Node2D) with a Ship (CharacterBody2D, scripts/Ship.cs) at (160, 184).
+- 16×16 Sprite2D (my ship, or a placeholder) and a matching RectangleShape2D.
+- Input actions move_left / move_right: arrow keys, A/D, gamepad d-pad.
+- [Export] Speed = 120 world px/s; MoveAndSlide(); X clamped so the whole ship stays on screen.
+Done when:
+- The window opens at 1280×800, and the ship's pixels are crisp 4×4 blocks.
+- Arrows, A/D and the d-pad move it at a steady speed, and it stops flush with both edges.
+Not in this spec:
+- Shooting
+- Enemies
+- Ship animation
+- A HUD</code></pre>
+      <p class="muted">Review questions. Does the clamp assign a whole <code>Position</code> (idea 1's trap)? Is <code>delta</code> unused, as it should be with <code>MoveAndSlide()</code>? Are the bindings in the Input Map, not raw keys? And is there any scale factor in the code? There shouldn't be.</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Spec 0002: shooting.</span>
+    Decide: the bullet's node type, speed and size, the fire button, the rate, who instances the bullet and where it's added, and how bullets are freed.
+    <details>
+      <summary>Model spec (open after writing yours)</summary>
+<pre><code># 0002 · Shooting
+Goal: Holding fire shoots a stream of bullets up from the ship's nose, at most four a second.
+Behaviour:
+- New scene bullet.tscn: Area2D (scripts/Bullet.cs), 2×6 placeholder, moves up at [Export] Speed = 240 px/s.
+- A VisibleOnScreenNotifier2D on the bullet; ScreenExited → QueueFree().
+- Input action fire: Space, gamepad A.
+- Ship: a Timer "Cooldown" (One Shot, 0.25 s). While fire is held and Cooldown is stopped, emit Shoot(nose position) and start Cooldown.
+- Main (scripts/Main.cs): [Export] PackedScene BulletScene; on Shoot, instance a bullet at that position under a Bullets Node2D.
+Done when:
+- Holding Space fires four bullets a second from the nose.
+- Bullets fly straight up while the ship moves; they aren't dragged along.
+- In the Remote scene tree, Bullets is empty again a second after I stop firing.
+Not in this spec:
+- Enemies and hits
+- A limit on bullets on screen
+- Sound</code></pre>
+      <p class="muted">Review questions. Does the ship know about <code>Bullets</code> or <code>Main</code>? It shouldn't. Is the bullet's movement multiplied by <code>(float)delta</code>, given it isn't using <code>MoveAndSlide()</code>? Is <code>BulletScene</code> set in <code>main.tscn</code>'s Inspector, so it isn't null at runtime? And is the signal declared with the <code>EventHandler</code> suffix?</p>
+    </details>
+  </li>
+  <li>
+    <span class="step-title">Break it on purpose.</span>
+    Change one line so bullets are added as children of the ship. Fire and move. Describe what you see and why, using idea 3. Then undo it with <code>git checkout</code>.
+  </li>
+  <li>
+    <span class="step-title">Spec 0003: two bullets at a time, with no model.</span>
+    Classic fixed shooters allow only a couple of your bullets on screen at once, so aiming matters. Write it alone. Decide how you count bullets on screen, and remember Breakout's last-brick lesson: a <code>QueueFree()</code>d node is still a child until the frame ends. Decide whether the cooldown still applies, and what holding fire does when the limit is reached.
+  </li>
+  <li>
+    <span class="step-title">Run it and check.</span>
+    Check every "Done when" line. Resize the window: the picture should jump between whole scales and never blur.
+  </li>
+  <li>
+    <span class="step-title">Take the quiz below, from memory.</span>
+  </li>
+</ol>
+
+<h2>Push it further</h2>
+<p>Open-ended, with no model specs. Walk your own path, each with <code>/feature-spec</code>.</p>
+<ul>
+  <li><strong>A starfield.</strong> A scrolling background of 1-pixel stars at two speeds for depth. Decide whether stars are nodes, or one node that draws them all in <code>_Draw()</code>. That choice is your first performance trade-off.</li>
+  <li><strong>Ship feel.</strong> Acceleration and friction instead of instant speed, so the ship eases in and out. Is it still a <code>CharacterBody2D</code> job?</li>
+  <li><strong>A muzzle flash.</strong> One frame of a bright sprite at the nose when firing, hidden by its own short Timer. It's a small preview of the animation lesson.</li>
+</ul>
+
+<h2>Check yourself</h2>
+<p class="muted">Answer without scrolling up. The first two revisit Breakout on purpose.</p>
+<div class="quiz" id="quiz-0006"></div>
+<script type="application/json" data-quiz-for="quiz-0006">
+[
+  {
+    "q": "A CanvasLayer is moved to be the <em>first</em> child of its parent, above the play area in the Scene dock. Where does it draw?",
+    "options": ["Underneath, because earlier siblings draw first", "On top, because it draws by its layer number", "Wherever its z_index says", "It stops drawing"],
+    "answer": 1,
+    "why": "CanvasLayers draw by layer (default 1, above the normal canvas at 0). Tree order only matters within one layer."
+  },
+  {
+    "q": "In Breakout, one Space press at GAME OVER also launched the ball. What was the root cause?",
+    "options": ["Space was bound twice in the Input Map", "Two listeners read the same press, one by event and one by polling, and only one knew the state", "The tree wasn't really paused", "Deferred calls ran too late"],
+    "answer": 1,
+    "why": "Pausing doesn't swallow a press; the polling paddle still saw it as just pressed. The fix was one owner reading Space, with the state deciding what it means."
+  },
+  {
+    "q": "In C#, why does <code>Position.X = 10;</code> fail to compile?",
+    "options": ["X is read-only on Vector2", "Position is a property returning a copy of a struct, so the change would be lost", "You must call SetPosition()", "Godot properties can't be set from C#"],
+    "answer": 1,
+    "why": "Vector2 is a value type. Assign a whole vector: Position = new Vector2(10, Position.Y), or Position with { X = 10 }."
+  },
+  {
+    "q": "The bullet moves itself with <code>Position += Vector2.Up * Speed * (float)delta;</code>. Why the cast?",
+    "options": ["Speed is an int", "delta is a double in C#, and Vector2 maths uses floats", "Godot rejects doubles at runtime", "To round to whole pixels"],
+    "answer": 1,
+    "why": "Godot's C# callbacks pass delta as double; Vector2 is float-based, and C# won't narrow double to float implicitly."
+  },
+  {
+    "q": "Bullets are added as children of the ship. What do you see when you fire and then move?",
+    "options": ["Nothing different", "The bullets slide sideways with the ship", "The bullets stop", "The game crashes"],
+    "answer": 1,
+    "why": "A child inherits its parent's transform. Spawned things go under a node that doesn't move, like Bullets in the main scene."
+  },
+  {
+    "q": "The Cooldown Timer is One Shot with a 0.25 s Wait Time. What's the fastest anyone can fire?",
+    "options": ["Once per frame", "Four shots a second", "Once per press", "Two shots a second"],
+    "answer": 1,
+    "why": "A shot only happens when the Timer is stopped, and each shot restarts it for 0.25 s."
+  },
+  {
+    "q": "Base 320×200, stretch mode viewport, scale mode integer, on a 1920×1080 monitor. What do you get?",
+    "options": ["Stretched to fill, slightly blurry", "×5, 1600×1000, with black bars", "×6, cropped", "×4, 1280×800, with large bars"],
+    "answer": 1,
+    "why": "Integer mode picks the largest whole scale that fits: 1080/200 = 5.4, so ×5. The leftover space becomes bars, and pixels stay square and sharp."
+  }
+]
+</script>
+
+<h2>Go deeper</h2>
+<p><strong>Primary source:</strong> <a href="https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_differences.html">Docs: C# API differences to GDScript</a>. Skim it once now (10 minutes) and keep it open while reviewing. Then <a href="https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html">Multiple resolutions</a>, the stretch sections (10 minutes). The Steam Deck pass later in the course leans on both.</p>
+<p>Keep these open: <a href="../reference/glossary.html">Glossary</a> · <a href="../reference/spec-loop.html">Spec loop</a></p>
+
+<div class="callout ask">
+  <span class="label">Ask your teacher</span>
+  <p>Good questions for the chat: "Fields or properties for [Export]?" "When should a C# class be a plain class, not a Node?" "Should bullets be pooled instead of freed?" That last one is a classic shooter question, and the honest answer for this game may surprise you.</p>
+</div>
+
+<nav class="lesson-nav">
+  <a href="0005-lives-game-over-level-clear.html">← Lesson 5: a game with an ending</a>
+  <span class="muted">Next: enemies and waves</span>
+</nav>
+</main>
+<script src="../assets/quiz.js"></script>
+<script src="../assets/steps.js"></script>
+</body>
+</html>
